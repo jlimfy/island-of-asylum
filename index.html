@@ -145,6 +145,19 @@ label.sl{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-tran
 #menuErr{color:#ff9a8a;font-family:var(--f-mono);font-size:12px;min-height:1em}
 .m-cap{font-family:var(--f-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--bone-dim)}
 
+/* Online */
+.online{display:grid;gap:8px;padding-top:6px;border-top:1px solid var(--line)}
+.joinrow{display:flex;gap:6px}
+#joinCode{font:600 16px var(--f-mono);letter-spacing:.2em;text-transform:uppercase;width:9.5ch;color:var(--bone);background:rgba(234,223,196,.06);border:1px solid var(--line);border-bottom:2px solid rgba(234,223,196,.45);padding:10px;border-radius:0;outline:none}
+#joinCode:focus{border-bottom-color:var(--ember)}
+.code{font:600 clamp(40px,8vw,64px)/1 var(--f-mono);letter-spacing:.18em;color:var(--ember)}
+.lstatus{margin:0;font-size:17px;line-height:1.5;color:var(--bone-dim);max-width:52ch}
+.plist{margin:0;padding:0;list-style:none;display:grid;gap:1px;background:var(--line);border:1px solid var(--line);counter-reset:pl}
+.plist li{background:var(--abyss);padding:10px 14px;font-size:18px;display:flex;gap:12px;align-items:baseline;counter-increment:pl}
+.plist li::before{content:counter(pl);font:600 12px var(--f-mono);color:var(--bone-dim)}
+.plist li span{margin-left:auto;font:600 10px var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--rune)}
+#netNote{position:absolute;left:50%;bottom:calc(64px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font:11px var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim);background:var(--slab);padding:4px 10px;border:1px solid var(--line);white-space:nowrap}
+
 /* Touch */
 #touch{position:absolute;inset:0;z-index:4;pointer-events:none}
 #stickZone{position:absolute;left:0;bottom:0;width:45%;height:60%;pointer-events:auto;touch-action:none}
@@ -210,6 +223,7 @@ body.touch #tl .obj{font-size:13px}
     </div>
     <div id="inv"></div>
     <div id="prompt" hidden></div>
+    <div id="netNote" hidden></div>
     <div id="boatHud" hidden>
       <div class="bh"><span>Distance from the island</span><b id="bDist">0 / 600 m</b></div>
       <div class="track" id="bDistT"><i id="bDistF"></i></div>
@@ -242,6 +256,13 @@ body.touch #tl .obj{font-size:13px}
         <button type="submit" class="btn" id="startBtn">Wash ashore</button>
         <button type="button" class="btn ghost" id="contBtn" hidden>Continue</button>
       </div>
+      <div class="online">
+        <div class="m-cap">Play online — 2 to 5 survivors, each on their own computer</div>
+        <div class="row">
+          <button type="button" class="btn ghost" id="hostBtn">Host online game</button>
+          <span class="joinrow"><input id="joinCode" maxlength="5" placeholder="CODE" autocomplete="off" spellcheck="false" aria-label="Room code"><button type="button" class="btn ghost" id="joinBtn">Join</button></span>
+        </div>
+      </div>
       <div class="keys">
         <div><b>WASD</b> move · <b>Shift</b> sprint</div><div><b>Mouse</b> look · <b>Click</b> strike</div>
         <div><b>E</b> use · <b>F</b> eat · <b>C</b> craft</div><div><b>1–6</b> weapons · <b>Z</b> sleep</div>
@@ -256,6 +277,21 @@ body.touch #tl .obj{font-size:13px}
       <div class="have" id="craftHave"></div>
       <div class="recipes" id="recipes"></div>
       <button class="btn ghost" id="craftClose" type="button">Close <kbd>C</kbd></button>
+    </div>
+  </section>
+
+  <section id="lobby" class="overlay" hidden>
+    <div class="card">
+      <div class="eyebrow" id="lobbyEyebrow">Online lobby</div>
+      <h2 class="sm" id="lobbyTitle">Room code</h2>
+      <div class="code" id="lobbyCode">·····</div>
+      <p class="lstatus" id="lobbyStatus" aria-live="polite"></p>
+      <ol class="plist" id="lobbyList"></ol>
+      <div class="row">
+        <button class="btn" id="lobbyStart" type="button">Start the game</button>
+        <button class="btn ghost" id="lobbyCopy" type="button">Copy code</button>
+        <button class="btn ghost" id="lobbyLeave" type="button">Leave</button>
+      </div>
     </div>
   </section>
 
@@ -1088,9 +1124,10 @@ function spawnEnemy(type,x,z,o={}){const def=EDEF[type];const mesh=makeEnemyMesh
   const e={type,def,mesh,x,z,hp:def.hp*hpMul,max:def.hp*hpMul,cd:rand(.3,1.2),aware:!!o.aware,dead:false,deadT:0,flash:0,ph:rand(0,6),keeper:!!o.keeper,rise:o.rise||0,minion:!!o.minion,kx:0,kz:0,face:rand(0,6),los:false,losT:0,atk:0,sc:def.scale*(o.keeper?1.3:1)};
   mesh.position.set(x,e.rise?-2:0,z);world.add(mesh);enemies.push(e);return e;}
 const PLAYER_LOOK=[0x2f5d4a,0xd2a07a,0x3b3328];
-const ALLY_LOOK=[[0x2f6fa8,0xc99a72,0x4a4036],[0xc9a13a,0x8d5a3b,0x4a4036],[0xa8483a,0xe0b48f,0x4a4036]];
+const ALLY_LOOK=[[0x2f6fa8,0xc99a72,0x4a4036],[0xc9a13a,0x8d5a3b,0x4a4036],[0xa8483a,0xe0b48f,0x4a4036],[0x6a4a8a,0xb07a52,0x3a3a40]];
 function labelSprite(text){const c=document.createElement('canvas');c.width=256;c.height=64;const x=c.getContext('2d');x.font='600 28px "IBM Plex Mono", monospace';x.textAlign='center';x.textBaseline='middle';const w=Math.min(250,x.measureText(text).width+24);x.fillStyle='rgba(6,17,19,.65)';x.fillRect(128-w/2,12,w,40);x.fillStyle='#eadfc4';x.fillText(text,128,33);const t=new THREE.CanvasTexture(c);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true}));s.scale.set(1.6,.4,1);return s;}
-function spawnAllies(){allies=[];G.names.slice(1).forEach((n,i)=>{const L=ALLY_LOOK[i%3];const mesh=makeHuman(L[0],L[1],L[2]);const lbl=labelSprite(n);lbl.position.y=2.5;mesh.add(lbl);
+function spawnAllies(){allies=[];if(NET.on&&NET.started){G.names.forEach((n,slot)=>{if(slot===NET.me)return;const L=slot===0?PLAYER_LOOK:ALLY_LOOK[(slot-1)%ALLY_LOOK.length];const mesh=makeHuman(L[0],L[1],L[2]);const lbl=labelSprite(n);lbl.position.y=2.5;mesh.add(lbl);mesh.visible=false;world.add(mesh);allies.push({name:n,mesh,net:true,slot,x:P.pos.x,z:P.pos.z,y:0,face:0,ph:0,off:[0,0],cd:9});});return;}
+  G.names.slice(1).forEach((n,i)=>{const L=ALLY_LOOK[i%ALLY_LOOK.length];const mesh=makeHuman(L[0],L[1],L[2]);const lbl=labelSprite(n);lbl.position.y=2.5;mesh.add(lbl);
   const off=[[-1.7,2.2],[1.7,2.2],[0,3.8]][i];const a={name:n,mesh,x:P.pos.x+off[0],z:P.pos.z+off[1],off,cd:rand(.5,1.5),ph:0,face:P.yaw};
   if(G.mode!=='island'&&blockedAt(a.x,a.z,.3)){a.x=P.pos.x;a.z=P.pos.z;}world.add(mesh);allies.push(a);});}
 
@@ -1329,12 +1366,12 @@ function eventDue(e){return G.day>e.day||(G.day===e.day&&G.hour>=e.hour);}
 function runEvents(){if(CINE||G.aboard||G.zw||G.overlay)return;
   if(G.story===0&&G.day>=2){setStory(1);return;}
   if(G.story===1&&eventDue({day:3,hour:8})){setStory(2);setTimeout(()=>toast('Something has changed. The jungle is no longer safe.','ch2',4200),1600);return;}
-  if(G.story===2&&(G.day>=11||eventDue({day:10,hour:23}))){cineZombies();return;}
-  if(G.story===4&&!G.ev.war&&eventDue({day:15,hour:8})){startWar();return;}
+  if(G.story===2&&(G.day>=11||eventDue({day:10,hour:23}))){hostDo('zombies');return;}
+  if(G.story===4&&!G.ev.war&&eventDue({day:15,hour:8})){hostDo('war');return;}
   if(G.ev.war)return;
   if(ibosses.some(b=>b.active&&!b.dead&&b.kind!=='plesio'))return;
   if(G.story<2)return;
-  for(const e of EVENTS){if(G.ev[e.id]||!eventDue(e))continue;G.ev[e.id]=1;if(e.day<G.day-0&&e.hour>=19&&G.day>e.day)continue;e.fn();return;}}
+  for(const e of EVENTS){if(G.ev[e.id]||!eventDue(e))continue;G.ev[e.id]=1;if(e.day<G.day-0&&e.hour>=19&&G.day>e.day)continue;hostDo('event',e.id);return;}}
 
 /* building at the camp and the landing */
 function buildCamp(){if(!has(COST.camp)){toast(`A camp needs ${costText(COST.camp)}`,'need');return;}spend(COST.camp);G.campBuilt=true;G.campHP=100;refreshCamp();SFX.unlock();banner('Camp built',G.names.length>1?`${G.names.length} tents, one for each survivor`:'A tent of palm leaves',2600);saveCheckpoint('island');}
@@ -1342,7 +1379,8 @@ function repairCamp(){if(!has(COST.repair)){toast(`Repairs need ${costText(COST.
 function buildFire(){if(!has(COST.fire)){toast(`A campfire needs ${costText(COST.fire)}`,'need');return;}spend(COST.fire);G.fireLit=true;refreshCamp();SFX.pickup();banner('Campfire','A warm light against the dark',2400);saveCheckpoint('island');}
 function buildDock(){if(!has(COST.dock)){toast(`A landing needs ${costText(COST.dock)}`,'need');return;}spend(COST.dock);G.dockBuilt=true;refreshCamp();SFX.unlock();SFX.chop();banner('Landing built','Now build a boat here',2400);saveCheckpoint('island');}
 function buildBoat(){if(!has(COST.boat)){toast(`A boat needs ${costText(COST.boat)}`,'need');return;}spend(COST.boat);G.boatBuilt=true;G.ev.boatMade=1;G.boatHP=100;refreshCamp();SFX.unlock();banner('Boat built','Board it at the landing',2400);saveCheckpoint('island');}
-function trySleep(){if(!night()){toast('You can only sleep after 19:00','sleep');return;}if(!G.campBuilt){toast('Build a camp first','sleep');return;}if(G.campHP<=0){toast('Your tents are wrecked. Repair the camp first','sleep');return;}
+function trySleep(fromNet){if(!night()){toast('You can only sleep after 19:00','sleep');return;}if(!G.campBuilt){toast('Build a camp first','sleep');return;}if(G.campHP<=0){toast('Your tents are wrecked. Repair the camp first','sleep');return;}
+  if(NET.on&&NET.started&&!fromNet){if(netClient())toast('Asking the others to bed down…','sleep');hostDo('sleep');return;}
   if(Math.hypot(P.pos.x-CAMP.x,P.pos.z-CAMP.z)>8){toast('Sleep in your tent at camp','sleep');return;}
   if(hostilesNear(30)){toast('You cannot sleep with enemies nearby','sleep');return;}
   if(G.story===2&&G.day>=10){toast('You lie down… and hear something groaning in the dark.','sleep',2600);cineZombies();return;}
@@ -1394,11 +1432,11 @@ function updateIslandSlams(dt){for(let i=slams.length-1;i>=0;i--){const s=slams[
   if(s.t>=1.25){if(Math.hypot(P.pos.x-s.x,P.pos.z-s.z)<s.r&&P.pos.y<islandH(P.pos.x,P.pos.z)+.9)hurt(s.dmg);burst(new V3(s.x,islandH(s.x,s.z)+.3,s.z),0x8a7a5a,18,7);SFX.thud();G.shake=Math.max(G.shake,.5);world.remove(s.m);world.remove(s.disc);disposeObj(s.m);disposeObj(s.disc);slams.splice(i,1);}}}
 function updateIsland(dt){
   if(!G.zw){G.hour+=dt/HOUR_SEC;if(G.hour>=24){G.hour-=24;G.day++;banner(`Day ${G.day}`,CH_SHORT[G.story]+' — '+CH_NAME[G.story],2600);}}
-  runEvents();if(CINE)return;
-  if(G.story>=4&&!G.stairFound&&!G.discovering&&!G.aboard&&Math.hypot(P.pos.x-STAIR.x,P.pos.z-STAIR.z+2.6)<12){if(G.ev.war){G.stairFound=true;if(ISL.stair)ISL.stair.userData.cover.visible=false;SFX.unlock();toast('A stairway under the leaves! Get down there!','found',3200);}else{cineDiscovery();return;}}
+  if(!netClient()){runEvents();if(CINE)return;
+  if(G.story>=4&&!G.stairFound&&!G.discovering&&!G.aboard&&nearAny(STAIR.x,STAIR.z-2.6,12)){if(G.ev.war){G.stairFound=true;if(ISL.stair)ISL.stair.userData.cover.visible=false;SFX.unlock();toast('A stairway under the leaves! Get down there!','found',3200);}else{hostDo('discover',randi(0,G.names.length-1));return;}}
   if((G.story===2||G.story===4)&&!G.ev.war&&!G.aboard&&!G.zw){
-    if(!G.ev.bigfoot&&Math.hypot(P.pos.x-HILL.x,P.pos.z-HILL.z)<15){G.ev.bigfoot=1;cineBigfoot(spawnBigfoot());return;}
-    if(!G.ev.monster&&Math.hypot(P.pos.x-SWAMP.x,P.pos.z-SWAMP.z)<22&&islandH(P.pos.x,P.pos.z)<2.2){G.ev.monster=1;cineMonster(spawnMonster());return;}}
+    if(!G.ev.bigfoot&&nearAny(HILL.x,HILL.z,15)){hostDo('bigfoot');return;}
+    if(!G.ev.monster&&nearAny(SWAMP.x,SWAMP.z,22,(x,z)=>islandH(x,z)<2.2)){hostDo('monster');return;}}}
   if(!G.ev.pistolNote&&G.tools.pistol){G.ev.pistolNote=1;setTimeout(()=>toast(`You still have your .45 pistol: ${G.ammo} rounds and no way to get more. Make them count.`,'pistol',5200),2500);}
   updateWar(dt);
   if(ISL.obelisk&&G.ev.bigfoot&&!ISL.obelisk.lit)ISL.obelisk.glow(1);
@@ -1427,7 +1465,7 @@ function updateIsland(dt){
   if(G.aboard){if(Math.hypot(P.pos.x-DOCK.bx,P.pos.z-DOCK.bz)<9)pr={text:`${K} — Step ashore`,act:leaveBoat};
     else if(Math.hypot(P.pos.x-WRECK.x,P.pos.z-WRECK.z)<16&&G.salvaged<4)pr={text:`${K} — Salvage a crate (${G.salvaged}/4)`,act:salvage};}
   else{
-    if(G.stairFound&&Math.hypot(P.pos.x-ISL.door.x,P.pos.z-ISL.door.z)<4)pr={text:`${K} — Go down the stairway`,act:enterStructure};
+    if(G.stairFound&&Math.hypot(P.pos.x-ISL.door.x,P.pos.z-ISL.door.z)<4)pr={text:`${K} — Go down the stairway`,act:()=>hostDo('enterStructure')};
     const dc=Math.hypot(P.pos.x-CAMP.x,P.pos.z-CAMP.z);
     if(!pr&&dc<7){if(!G.campBuilt)pr={text:has(COST.camp)?`${K} — Build the camp (10 palm leaves, 6 wood)`:`Camp site — needs ${costText(COST.camp)}`,act:has(COST.camp)?buildCamp:null};
       else if(G.campHP<=0)pr={text:has(COST.repair)?`${K} — Repair the camp (7 vines, 2 sticks)`:`Camp wrecked — repair needs ${costText(COST.repair)}`,act:has(COST.repair)?repairCamp:null};
@@ -1737,8 +1775,8 @@ function updateDungeon(dt){G.dungeonTime+=dt;G.lastHurt+=dt;if(G.lastHurt>6&&G.h
   updateEnemies(dt);if(boss)updateBoss(dt,false);
   const K=isTouch?'Use':'E';let pr=null;for(const c of chests){if(c.open){c.t=Math.min(1,c.t+dt*3);c.lid.rotation.x=-c.t*1.8;continue;}if(Math.hypot(P.pos.x-c.x,P.pos.z-c.z)<2.4){pr={text:`${K} — Open the chest`,act:()=>openChest(c)};}}G.prompt=pr;
   if(LV.exit){LV.exit.glyph.rotation.z+=dt*(LV.exitOpen?3:.6);LV.exit.bm.opacity=.35+Math.sin(T*3)*.1;
-    if(LV.exitOpen&&!G.transitioning&&Math.hypot(P.pos.x-LV.exit.x,P.pos.z-LV.exit.z)<1.9)nextLevel();}
-  if(LV.kind==='temple'){if(LV.spawnT>0){LV.spawnT-=dt;if(LV.spawnT<=0)spawnTempleZombies(false);}if(cellVal(P.pos.x,P.pos.z)===2)startDive();}
+    if(LV.exitOpen&&!G.transitioning&&!LV.nextReq&&Math.hypot(P.pos.x-LV.exit.x,P.pos.z-LV.exit.z)<1.9){LV.nextReq=1;hostDo('next',G.chapter,G.level);}}
+  if(LV.kind==='temple'){if(LV.spawnT>0){LV.spawnT-=dt;if(LV.spawnT<=0)spawnTempleZombies(false);}if(cellVal(P.pos.x,P.pos.z)===2&&!LV.diveReq){LV.diveReq=1;hostDo('dive');}}
   if(LV.boltSpots)for(const s of LV.boltSpots){if(!s.ref||!pickups.includes(s.ref)){s.t+=dt;if(s.t>12){s.ref=spawnPickup('bolts',s.x,s.z,6);s.t=0;}}}
   if(LV.kind==='cave')updateCave(dt);
   if(LV.kind==='temple')G.wp={x:LV.waterTarget.x,z:LV.waterTarget.z,label:'Stream'};
@@ -1767,7 +1805,8 @@ function hitBoss(dmg){const B=boss;if(!B.active||B.dying)return;if(B.shield_on){
   B.hp-=dmg;B.coreM.emissiveIntensity=2.2;burst(B.pos,0xff7a3a,6,5);SFX.hit();
   if(B.phase===1&&B.hp<B.max*.66){B.phase=2;SFX.roar();G.shake=.6;banner('It fractures','The Entity grows desperate',2200);B.atk=1.4;}
   else if(B.phase===2&&B.hp<B.max*.33){B.phase=3;SFX.roar();G.shake=.8;B.coreM.emissive.set(0xff8a5a);banner('It is breaking','Finish it',2200);B.atk=1.2;}
-  if(B.hp<=0){B.hp=0;B.dying=true;B.deathT=0;SFX.roar();enemies.forEach(e=>{if(!e.dead)killEnemy(e);});projs.filter(p=>p.enemy).forEach(p=>p.life=0);slams.forEach(s=>s.t=-99);cineBossDeath();}}
+  if(B.hp<=0&&!B.downReq){B.hp=0;B.downReq=true;hostDo('bossDown');}}
+function bossDown(){const B=boss;if(!B||B.dying)return;B.hp=0;B.dying=true;B.deathT=0;SFX.roar();enemies.forEach(e=>{if(!e.dead)killEnemy(e);});projs.filter(p=>p.enemy).forEach(p=>p.life=0);slams.forEach(s=>s.t=-99);cineBossDeath();}
 function bossAttack(){const B=boss,ph=B.phase;const list=ph===1?['volley','volley','ring']:ph===2?['volley','slam','summon','ring','volley']:['homing','ring','slam','volley','summon','homing'];
   let a=list[B.cycle++%list.length];if(a==='summon'&&(B.summonCd>0||minionsAlive()>0))a='volley';
   const tgt=new V3(P.pos.x,P.pos.y+1.1,P.pos.z);
@@ -1830,7 +1869,7 @@ function updateCave(dt){
   LV.rumbleT-=dt;if(LV.rumbleT<=0){LV.rumbleT=rand(6,11);G.shake=Math.max(G.shake,.3);noise(1.4,.25,110);for(let k=0;k<4;k++)burst(new V3(P.pos.x+rand(-4,4),WALLH-.2,P.pos.z+rand(-4,4)),0x8a8070,3,1);}
   LV.rockT-=dt;if(LV.rockT<=0){LV.rockT=rand(1.4,2.8);const lead=Math.random()<.45;const fx=lead?P.pos.x:P.pos.x+rand(-4,4),fz=lead?P.pos.z:P.pos.z+rand(-4,4);if(isPass(cellVal(fx,fz))&&cellVal(fx,fz)!==2)dropRock(fx,fz,1.3,16,1.1);}
   const pi=Math.floor(P.pos.x/S),pj=Math.floor(P.pos.z/S),g=LV.exitRoom;
-  if(!LV.exitCine&&pi>=g.x&&pi<g.x+g.w&&pj>=g.y&&pj<g.y+g.h){LV.exitCine=true;cineExit();return;}
+  if(!LV.exitCine&&pi>=g.x&&pi<g.x+g.w&&pj>=g.y&&pj<g.y+g.h){LV.exitCine=true;hostDo('caveExit');return;}
   const o=nextObstacle();
   if(o)G.wp={x:o.cx,z:o.cz,label:o.type===3?'Rubble':'Roots'};else{const c=cellCenter(g.x,g.cy);G.wp={x:c.x,z:c.z,label:'Daylight'};}}
 
@@ -1847,7 +1886,7 @@ function startEscape(quick){G.mode='boat';G.story=9;G.paused=false;G.weapon=-1;c
   const wp=new THREE.Mesh(new THREE.RingGeometry(10,260,48,1),new THREE.MeshBasicMaterial({map:spiralTex(),transparent:true,opacity:0,depthWrite:false}));wp.rotation.x=-Math.PI/2;wp.position.y=1.2;world.add(wp);
   const chunkMat=M(0x5d5950);const chunks=[];for(let x=-120;x<=130;x+=12){const xx=x+rand(-3,3);if(Math.abs(xx-ARCH.x)<8)continue;const cz=coastZ(xx);const z=cz+2.8;const y=islandH(xx,z+1.5);if(y<8)continue;const m=new THREE.Mesh(rockGeo,chunkMat);m.scale.set(rand(3,5),rand(4,6.5),rand(3,4.5));m.rotation.set(rand(0,1),rand(0,3),0);m.position.set(xx,y-2,z);world.add(m);chunks.push({m,x:xx,z,y0:y-2,at:rand(6,80),vy:0,falling:false,splashed:false,rx:rand(-.7,.7)});}
   const boat=makeBoat();world.add(boat);
-  const ai=G.names.slice(1).map((n,i)=>{const L=ALLY_LOOK[i%3];const hm=makeHuman(L[0],L[1],L[2]);const lbl=labelSprite(n);lbl.position.y=2.9;hm.add(lbl);const g=boatSeat(hm);world.add(g);const off=[-8,8,-16][i];
+  const ai=G.names.filter((n,i)=>i!==(G.me||0)).map((n,i)=>{const L=ALLY_LOOK[i%ALLY_LOOK.length];const hm=makeHuman(L[0],L[1],L[2]);const lbl=labelSprite(n);lbl.position.y=2.9;hm.add(lbl);const g=boatSeat(hm);world.add(g);const off=[-8,8,-16,16][i];
     return{g,name:n,x:ARCH.x+off*.5,z:ARCH.z-3-Math.abs(off)*.3,h:Math.PI+off*.012,speed:4,target:13+rand(-1,1),off:off*.012,bump:0};});
   BOAT={g:boat,x:ARCH.x,z:ARCH.z-4,h:Math.PI,speed:4,hull:100,t:90,ocean,isl,wp,sky,debris:[],rocks:[],chunks,ai,done:false,hitT:0,rockT:3,crumbleT:.8,islY:0,rafts:[],spears:[],raftAt:[70,44]};
   P.lookYaw=0;P.pitch=-.06;P.fire=false;for(let i=0;i<20;i++)spawnDebris(true);
@@ -1939,7 +1978,8 @@ function updateRafts(dt,auto,amp){const B=BOAT;
     if(t>=s.T){if(Math.hypot(s.tx-B.x,s.tz-B.z)<2.2&&B.hitT<=0){B.hull-=5;B.hitT=.4;SFX.thud();G.hurtFlash=.5;G.shake=Math.max(G.shake,.25);toast('A spear thuds into the hull!','hit');}else noise(.3,.15,1500);world.remove(s.m);B.spears.splice(i,1);}}}
 /* ---------- allies ---------- */
 function updateAllies(dt){const f=fwd(),rt={x:Math.cos(P.yaw),z:-Math.sin(P.yaw)};
-  for(const a of allies){let tx=P.pos.x+rt.x*a.off[0]-f.x*a.off[1],tz=P.pos.z+rt.z*a.off[0]-f.z*a.off[1];
+  const mk=NET.on?netModeKey():'';
+  for(const a of allies){if(a.net){netAvatar(a,dt,mk);continue;}let tx=P.pos.x+rt.x*a.off[0]-f.x*a.off[1],tz=P.pos.z+rt.z*a.off[0]-f.z*a.off[1];
     if(G.mode!=='island'&&isWall(tx,tz)){tx=P.pos.x-f.x*1.2;tz=P.pos.z-f.z*1.2;}
     const dx=tx-a.x,dz=tz-a.z,d=Math.hypot(dx,dz);
     if(d>22&&(G.mode==='island'?islandH(tx,tz)>.6:!blockedAt(tx,tz,.3))){a.x=tx;a.z=tz;}
@@ -1959,7 +1999,7 @@ const cineEl=$('#cine'),subEl=$('#cineSub');let subTok=0;
 function setSub(t){const tok=++subTok;subEl.classList.remove('show');if(!t){return;}setTimeout(()=>{if(tok!==subTok)return;subEl.textContent=t;subEl.classList.add('show');},CINE&&CINE.i>0?350:150);}
 function showTitle(on){$('#cineTitle').classList.toggle('show',on);}
 function camPath(a,b,la,lb,k){const e=ease(k);camera.position.set(lerp(a[0],b[0],e),lerp(a[1],b[1],e),lerp(a[2],b[2],e));_look.set(lerp(la[0],lb[0],e),lerp(la[1],lb[1],e),lerp(la[2],lb[2],e));camera.lookAt(_look);}
-function actor(i){const look=i===0?PLAYER_LOOK:ALLY_LOOK[(i-1)%3];const m=makeHuman(look[0],look[1],look[2]);m.rotation.order='YXZ';if(G.names.length>1){const l=labelSprite(G.names[i]);l.position.y=2.45;l.scale.set(1.1,.275,1);m.add(l);}world.add(m);if(CINE)CINE.own.push(m);return m;}
+function actor(i){const look=i===0?PLAYER_LOOK:ALLY_LOOK[(i-1)%ALLY_LOOK.length];const m=makeHuman(look[0],look[1],look[2]);m.rotation.order='YXZ';if(G.names.length>1){const l=labelSprite(G.names[i]);l.position.y=2.45;l.scale.set(1.1,.275,1);m.add(l);}world.add(m);if(CINE)CINE.own.push(m);return m;}
 function own(o){world.add(o);if(CINE)CINE.own.push(o);return o;}
 function playCine(def){if(G.skipping){def.onEnd&&def.onEnd();return;}
   CINE=Object.assign({i:-1,t:0,own:[]},def);P.fire=false;G.prompt=null;$('#hud').hidden=true;$('#touch').hidden=true;$('#prompt').hidden=true;
@@ -1986,7 +2026,7 @@ function riseFoes(dt){for(const f of foes){if(f.rise>0){f.rise-=dt;f.mesh.positi
 function wakeSpot(){const x=CAMP.x-6;const z=scanZ(x,CAMP.z,CAMP.z+40,.25,h=>h<1)-1.5;return{x,z,h:islandH(x,z)};}
 function stormY(x,z,t){return Math.sin(x*.08+t*1.3)*1.3+Math.cos(z*.07+t*1.0)*1.1+Math.sin((x+z)*.15+t*2)*.4;}
 function cineOpening(){const names=G.names;const W=wakeSpot();const sx=WRECK.x,sz=WRECK.z-34;
-  const others=names.slice(1);const offs=[[-5.5,2.5],[5,3.5],[-3,7]];
+  const me=G.me||0;const others=names.filter((n,i)=>i!==me);const offs=[[-5.5,2.5],[5,3.5],[-3,7],[4.5,7.5]];
   playCine({setup(c){
       c.ship=own(makeShip(false));c.ship.position.set(sx,0,sz);c.ship.rotation.y=Math.PI;c.sx=sx;c.sz=sz;
       const og=new THREE.PlaneGeometry(260,260,56,56);og.rotateX(-Math.PI/2);c.sea=own(new THREE.Mesh(og,M(0x0d2630,{roughness:.3,metalness:.2})));c.sea.position.set(sx,0,sz);
@@ -1994,7 +2034,7 @@ function cineOpening(){const names=G.names;const W=wakeSpot();const sx=WRECK.x,s
       c.rain=own(new THREE.Points(rg,new THREE.PointsMaterial({color:0x9ab0c0,size:.14,transparent:true,opacity:.7})));
       c.lamp=new THREE.PointLight(0xffb060,1.6,22,1.5);c.ship.add(c.lamp);c.lamp.position.set(0,7,-8);
       c.storm=[c.ship,c.sea,c.rain];ISL.wreck.visible=false;
-      c.lay=names.map((n,i)=>{if(i===0)return null;const m=actor(i);const[ox,oz]=offs[i-1];const x=W.x+ox,z=W.z+oz;m.position.set(x,Math.max(islandH(x,z),.1)+.2,z);m.rotation.set(-Math.PI/2,rand(-.6,.6),0);m.userData.base={x,z};return m;}).filter(Boolean);
+      c.lay=names.map((n,i)=>{if(i===me)return null;const m=actor(i);const[ox,oz]=offs[i-(i>me?1:0)];const x=W.x+ox,z=W.z+oz;m.position.set(x,Math.max(islandH(x,z),.1)+.2,z);m.rotation.set(-Math.PI/2,rand(-.6,.6),0);m.userData.base={x,z};return m;}).filter(Boolean);
       c.night=()=>{scene.background=new THREE.Color(0x04070b);scene.fog=new THREE.Fog(0x04070b,18,170);hemi.color.set(0x8090a8);hemi.groundColor.set(0x101418);hemi.intensity=.22;amb.intensity=.08;sun.intensity=.05;torch.intensity=0;};
       c.night();c.rain.visible=false;c.storm=c.storm.filter(o=>o!==c.rain);},
     ambient(c,dt){if(c.storm[0].visible){const t=T;const sea=c.sea.geometry.attributes.position;for(let i=0;i<sea.count;i++)sea.setY(i,stormY(sea.getX(i)+c.sx,sea.getZ(i)+c.sz,t)*.35);sea.needsUpdate=true;
@@ -2081,25 +2121,25 @@ function cineZombies(){if(G.zw)return;G.zw={wave:1,start:true};G.story=3;G.hour=
     onEnd(){if(!G.zw.spawned){spawnWave(1);G.zw.spawned=true;}showHud();setTimeout(()=>banner(CH_SHORT[3],CH_NAME[3],3200),300);saveCheckpoint('island');}});}
 
 /* Chapter 4: the stairway under the leaves */
-function cineDiscovery(){G.discovering=true;const fi=randi(0,G.names.length-1);const fname=G.names[fi];const sx=STAIR.x,sz=STAIR.z,h=islandH(sx,sz);
+function cineDiscovery(fiIn){G.discovering=true;const fi=typeof fiIn==='number'&&fiIn>=0&&fiIn<G.names.length?fiIn:randi(0,G.names.length-1);const fname=G.names[fi];const sx=STAIR.x,sz=STAIR.z,h=islandH(sx,sz);
   playCine({setup(c){const m=actor(fi);m.position.set(sx+.6,h,sz+5.5);m.rotation.y=Math.PI;c.f=m;},
     shots:[
-      {dur:4.4,sub:`Deep in the western jungle, ${fi===0?'you notice':fname+' notices'} cut stone under the leaves—`,update(k,t,dt,c){if(k<.55){c.f.position.z-=dt*1.1;walkPose(c.f,t*6,.4);}else{walkPose(c.f,0,0);c.f.rotation.x=lerp(c.f.rotation.x,.35,.08);c.f.userData.aR.rotation.x=-1.3+Math.sin(t*9)*.5;c.f.userData.aL.rotation.x=-1.1-Math.sin(t*9)*.4;if(Math.random()<dt*6)burst(new V3(sx+rand(-1,1),h+.6,sz+rand(-2,1)),0x35602a,2,2);}},
+      {dur:4.4,sub:`Deep in the western jungle, ${fi===(G.me||0)?'you notice':fname+' notices'} cut stone under the leaves—`,update(k,t,dt,c){if(k<.55){c.f.position.z-=dt*1.1;walkPose(c.f,t*6,.4);}else{walkPose(c.f,0,0);c.f.rotation.x=lerp(c.f.rotation.x,.35,.08);c.f.userData.aR.rotation.x=-1.3+Math.sin(t*9)*.5;c.f.userData.aL.rotation.x=-1.1-Math.sin(t*9)*.4;if(Math.random()<dt*6)burst(new V3(sx+rand(-1,1),h+.6,sz+rand(-2,1)),0x35602a,2,2);}},
         cam:k=>camPath([sx+3.2,h+1.9,sz+10],[sx+1.6,h+1.7,sz+6.4],[sx,h+.6,sz],[sx,h+.3,sz-1],k)},
       {dur:4.6,sub:'—a stairway, cut into the earth, going down into the dark.',enter(c){SFX.rumble();},update(k,t,dt,c){const cv=ISL.stair.userData.cover;const e=clamp(k*2,0,1);cv.scale.setScalar(Math.max(.001,1-e));cv.position.y=e*.5;if(k<.4&&Math.random()<.5)burst(new V3(sx+rand(-2,2),h+.8,sz+rand(-6,1)),0x35602a,2,3);c.f.rotation.x=lerp(c.f.rotation.x,0,.08);},
         cam:k=>camPath([sx+2,h+2.6,sz+4.2],[sx+.6,h+4.2,sz+2],[sx,h,sz-2],[sx,h-.8,sz-3],k)},
       {dur:3.8,sub:'Cold air breathes up from below. The carved stones were all pointing here.',enter(){SFX.beat();setTimeout(SFX.beat,1100);setTimeout(SFX.beat,2200);},cam:k=>camPath([sx,h+1.4,sz+2.4],[sx,h+1,sz+1.4],[sx,h-.5,sz-3],[sx,h-1.4,sz-4.5],k)}],
-    onEnd(){G.stairFound=true;G.discovering=false;if(ISL&&ISL.stair)ISL.stair.userData.cover.visible=false;showHud();toast(`${fi===0?'You':fname} found a hidden stairway. Go down when you are ready — but the natives are getting bolder.`,'found',5200);saveCheckpoint('island');}});}
+    onEnd(){G.stairFound=true;G.discovering=false;if(ISL&&ISL.stair)ISL.stair.userData.cover.visible=false;showHud();toast(`${fi===(G.me||0)?'You':fname} found a hidden stairway. Go down when you are ready — but the natives are getting bolder.`,'found',5200);saveCheckpoint('island');}});}
 
 function cineDescend(){const sx=STAIR.x,sz=STAIR.z,sh=islandH(sx,sz);G.overlay=false;
-  playCine({setup(c){c.party=G.names.map((n,i)=>{const m=actor(i);m.position.set(sx+[0,-.8,.8,0][i],sh,sz+2.6+i*1.2);m.rotation.y=Math.PI;return m;});},
+  playCine({setup(c){c.party=G.names.map((n,i)=>{const m=actor(i);m.position.set(sx+[0,-.8,.8,0,1.52][i],sh,sz+2.6+i*1.2);m.rotation.y=Math.PI;return m;});},
     shots:[{dur:3.8,sub:'One by one, you go down into the dark.',update(k,t,dt,c){c.party.forEach((m,i)=>{if(k<i*.12)return;const z=m.position.z-dt*2.2;m.position.z=z;const lz=z-sz;m.position.y=lz>1?sh:sh+Math.max(-3.5,(lz-1)*.55);walkPose(m,t*6+i,.45);});if(k>.75&&!c.f){c.f=1;fade(1,800,false);}},
       cam:k=>camPath([sx+1.6,sh+2.4,sz+6],[sx+.8,sh+2.2,sz+4.2],[sx,sh,sz],[sx,sh-1.5,sz-3],k)}],
     onEnd(){blackNow(1,false);setTimeout(()=>{enterTemple(false);fade(0,700,false);},250);}});}
 
 /* the stream: a leap, the underwater current, the blackout, and surfacing in the catacombs */
 function startDive(){G.mode='dive';P.fire=false;
-  playCine({setup(c){c.party=G.names.map((n,i)=>{const m=actor(i);m.position.set(22+[0,-1.4,1.4,-.6][i],0,19+i*.9);m.rotation.y=Math.PI;m.userData.v0=0;return m;});},
+  playCine({setup(c){c.party=G.names.map((n,i)=>{const m=actor(i);m.position.set(22+[0,-1.4,1.4,-.6,2.66][i],0,19+i*.9);m.rotation.y=Math.PI;m.userData.v0=0;return m;});},
     shots:[{dur:2.8,sub:'No way back. Only the water.',update(k,t,dt,c){c.party.forEach((m,i)=>{const tt=Math.max(0,t-i*.18);const z=19+i*.9-tt*6.5;m.position.z=z;if(z<12.5){const air=12.5-z;m.position.y=Math.max(-2.2,air*.9-air*air*.35);m.rotation.x=-Math.min(1.4,air*.4);if(!m.userData.sp&&m.position.y<.05){m.userData.sp=1;SFX.splash();burst(new V3(m.position.x,.3,z),0xdff2f4,16,6,1.4);}}walkPose(m,t*11+i,.7);});},
       cam:k=>camPath([25.5,2.8,22],[25,2.4,17],[22,1,12],[22,.2,8],k)}],
     onEnd(){clearWorld();buildUnderwater();cineUnderwater();}});}
@@ -2109,7 +2149,7 @@ function buildUnderwater(){scene.background=new THREE.Color(0x020c12);scene.fog=
   const N=600,pos=new Float32Array(N*3);for(let i=0;i<N;i++){pos[i*3]=rand(-4.5,4.5);pos[i*3+1]=rand(-4.5,4.5);pos[i*3+2]=rand(-130,8);}const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(pos,3));
   const bub=new THREE.Points(bg,new THREE.PointsMaterial({color:0xcfefff,size:.1,transparent:true,opacity:.7}));world.add(bub);LV={kind:'water',bub};}
 function cineUnderwater(){setAmbient('none');noise(6,.25,180);
-  playCine({setup(c){c.party=G.names.map((n,i)=>{const m=actor(i);m.position.set([0,-1.5,1.5,0][i],[0,.8,-.6,1.4][i],-4-i*1.6);m.rotation.set(-Math.PI/2+.2,0,0);return m;});},
+  playCine({setup(c){c.party=G.names.map((n,i)=>{const m=actor(i);m.position.set([0,-1.5,1.5,0,2.85][i],[0,.8,-.6,1.4,-1.14][i],-4-i*1.6);m.rotation.set(-Math.PI/2+.2,0,0);return m;});},
     ambient(c,dt){if(LV&&LV.bub){const p=LV.bub.geometry.attributes.position;for(let i=0;i<p.count;i++){let y=p.getY(i)+dt*1.4;if(y>4.5)y-=9;p.setY(i,y);}p.needsUpdate=true;}},
     shots:[
       {dur:4.2,sub:'The current drags you down, under the rock.',update(k,t,dt,c){c.party.forEach((m,i)=>{m.position.z-=dt*(11+i);m.rotation.z=Math.sin(t*2+i)*.4;walkPose(m,t*5+i,.6);});},cam:(k,c)=>{const m=c.party[0];camera.position.set(Math.sin(T*.7)*.6,1.2+Math.sin(T)*.3,m.position.z+6);camera.lookAt(0,0,m.position.z-6);}},
@@ -2119,14 +2159,14 @@ function cineUnderwater(){setAmbient('none');noise(6,.25,180);
       if(fast){bt.textContent='';go();return;}
       bt.style.opacity=1;bt.textContent='Did we make it?';[0,1000,2000].forEach(ms=>setTimeout(SFX.beat,ms));setTimeout(go,2900);}});}
 function cineSurface(){const s=cellCenter(LV.start.cx,LV.start.cy);
-  playCine({setup(c){c.party=G.names.map((n,i)=>{const m=actor(i);m.position.set(s.x+[0,-1.1,1.1,0][i],-1.9,s.z+[0,.6,.6,1.2][i]);m.rotation.y=-Math.PI/2;return m;});},
+  playCine({setup(c){c.party=G.names.map((n,i)=>{const m=actor(i);m.position.set(s.x+[0,-1.1,1.1,0,2.09][i],-1.9,s.z+[0,.6,.6,1.2,1.14][i]);m.rotation.y=-Math.PI/2;return m;});},
     shots:[{dur:3.6,sub:'Air.',enter(){SFX.gasp();setTimeout(SFX.gasp,400);},update(k,t,dt,c){c.party.forEach((m,i)=>{const e=ease(clamp((k-i*.12)/.5,0,1));m.position.y=lerp(-1.9,0,e);if(e>.2&&!m.userData.sp){m.userData.sp=1;burst(new V3(m.position.x,.3,m.position.z),0xdff2f4,14,5,1.2);}});},
       cam:k=>camPath([s.x+3.2,.5,s.z+2.6],[s.x+2.6,.9,s.z+2],[s.x,.4,s.z],[s.x,1.2,s.z],k)}],
     onEnd(){P.pos.set(s.x,0,s.z);P.yaw=-Math.PI/2;P.pitch=0;showHud();banner(CH_SHORT[5],`${CH_NAME[5]} — Level 1 of 3`,3600);}});}
 
 /* the grotto at the end of the cave: into the boats and out toward the light */
 function cineExit(){const g=LV.exitRoom;const lx=(g.x+1)*S,cz=(g.y+g.h/2)*S,openX=LV.W*S;const n=G.names.length;
-  playCine({setup(c){c.party=G.names.map((nm,i)=>{const m=actor(i);m.position.set(lx-1.4+[0,-1,-.8,-2][i],0,cz+[0,1.5,-1.5,0][i]);m.rotation.y=Math.PI/2;return m;});},
+  playCine({setup(c){c.party=G.names.map((nm,i)=>{const m=actor(i);m.position.set(lx-1.4+[0,-1,-.8,-2,-1.52][i],0,cz+[0,1.5,-1.5,0,-2.85][i]);m.rotation.y=Math.PI/2;return m;});},
     shots:[
       {dur:3.8,sub:'Daylight. The sea. Old boats knock against the rocks at the mouth of the cave.',update(k,t,dt,c){c.party.forEach((m,i)=>{if(k<.6){m.position.x+=dt*1.6;walkPose(m,t*7+i,.5);}else walkPose(m,0,0);});},cam:k=>camPath([lx-6,2.2,cz+1],[lx-3.6,2,cz+.6],[openX,1.6,cz],[openX,1.2,cz],k)},
       {dur:3,sub:'Behind you, the tunnels are caving in.',enter(c){SFX.rumble();G.shake=.8;for(let k=0;k<12;k++)dropRock(lx+rand(-6,2),cz+rand(-5,5),rand(.3,1.6),0,rand(1,1.8),true);},update(k,t,dt,c){if(Math.random()<dt*10)burst(new V3(lx+rand(-6,2),WALLH-.2,cz+rand(-4,4)),0x8a8070,3,1);},cam:k=>camPath([lx+3.2,1.7,cz+5.2],[lx+2.8,1.5,cz+4.6],[lx-2,1,cz],[lx-2,1.1,cz],k)},
@@ -2155,7 +2195,7 @@ function cineEscape(){const B=BOAT;const items=[];
       G.inv=NEW_INV();G.tools=NEW_TOOLS();G.weapon=-1;saveCheckpoint('boat');showHud();toast(isTouch?'Push the stick up to row, sideways to steer':'W to row · A / D to steer · watch the water for red rings','boat',4800);}});}
 
 function cineTemple(){
-  playCine({setup(c){c.party=G.names.map((n,i)=>{const m=actor(i);m.position.set(22+[0,-1.6,1.6,0][i],0,66+[0,.8,.8,1.5][i]);m.rotation.y=Math.PI;return m;});flick.forEach(l=>{l.light.intensity=0;l.fl.visible=false;});},
+  playCine({setup(c){c.party=G.names.map((n,i)=>{const m=actor(i);m.position.set(22+[0,-1.6,1.6,0,3.04][i],0,66+[0,.8,.8,1.5,1.52][i]);m.rotation.y=Math.PI;return m;});flick.forEach(l=>{l.light.intensity=0;l.fl.visible=false;});},
     shots:[
       {dur:4.2,sub:'At the bottom: a hall. The air is cold and smells of the sea.',update(k,t,dt,c){c.party.forEach((m,i)=>{m.position.z-=dt*2;walkPose(m,t*7+i,.5);});flick.forEach((l,i)=>{if(k>.15+i*.14&&!l.fl.visible){l.fl.visible=true;noise(.3,.12,600);}});},cam:k=>camPath([22,2.4,67.4],[22,2.2,62],[22,1.8,30],[22,1.6,30],k)},
       {dur:2.6,sub:'Above you, the stone slab grinds shut.',enter(c){c.party.forEach(m=>walkPose(m,0,0));},update(k,t,dt,c){const e=clamp((k-.1)/.25,0,1);LV.door.position.y=lerp(WALLH*1.6,WALLH/2,e*e);if(e>=1&&!c.slam){c.slam=1;SFX.thud();G.shake=.5;burst(new V3(22,.3,67.2),0x8a7d62,14,4);}c.party.forEach(m=>{m.rotation.y=lerp(m.rotation.y,0,.08);});},cam:k=>camPath([22,2,55.5],[22,2.1,56.5],[22,2,68],[22,2,68],k)},
@@ -2163,7 +2203,7 @@ function cineTemple(){
       {dur:2.4,sub:'The stream. Dive!',update(k,t,dt,c){c.party.forEach(m=>{m.rotation.y=lerp(m.rotation.y,Math.PI,.15);});},cam:k=>camPath([22,2.6,56],[22,2.4,54],[22,1.4,30],[22,.4,8],k)}],
     onEnd(){spawnTempleZombies(true);LV.door.position.y=WALLH/2;flick.forEach(l=>l.fl.visible=true);P.pos.set(22,0,58);P.yaw=0;P.pitch=0;allies.forEach((a,i)=>{a.x=22+a.off[0]*.6;a.z=59.5+i*.6;});showHud();}});}
 function cineBoss(){const B=boss;
-  playCine({setup(c){c.party=G.names.map((n,i)=>{const m=actor(i);m.position.set(46+[0,-1.4,1.4,0][i],0,88+[0,1,1,2][i]);m.rotation.y=Math.PI;return m;});},
+  playCine({setup(c){c.party=G.names.map((n,i)=>{const m=actor(i);m.position.set(46+[0,-1.4,1.4,0,2.66][i],0,88+[0,1,1,2,1.9][i]);m.rotation.y=Math.PI;return m;});},
     shots:[
       {dur:4.2,sub:'The last tunnel opens into a vast chamber. Its walls pulse like something alive.',update(k,t,dt,c){c.party.forEach((m,i)=>{m.position.z-=dt*2.4;walkPose(m,t*7+i,.5);});},cam:k=>camPath([46,2.2,94],[46,2.4,82],[46,4,40],[46,5,40],k)},
       {dur:4.6,sub:'At its heart waits the thing that has been calling the dead.',enter(c){c.party.forEach(m=>walkPose(m,0,0));},update(k){B.unfold=ease(clamp((k-.15)/.75,0,1));},cam:k=>camPath([41,1.2,62],[43.5,1.6,55],[46,4,42],[46,5.6,42],k)},
@@ -2175,7 +2215,7 @@ function cineBossDeath(){const B=boss;
       {dur:1.2,sub:'',enter(){fade(1,550,true);SFX.roar();G.shake=1;}}],
     onEnd(){startCave(false);}});}
 function cineCave(){const s=cellCenter(LV.start.cx,LV.start.cy);
-  playCine({setup(c){c.party=G.names.map((n,i)=>{const m=actor(i);const x=s.x+[.2,-1.5,1.4,.3][i],z=s.z+[0,1.2,-1,1.8][i];m.position.set(x,.2,z);m.rotation.set(-Math.PI/2,rand(0,6),0);return m;});},
+  playCine({setup(c){c.party=G.names.map((n,i)=>{const m=actor(i);const x=s.x+[.2,-1.5,1.4,.3,2.66][i],z=s.z+[0,1.2,-1,1.8,-1.9][i];m.position.set(x,.2,z);m.rotation.set(-Math.PI/2,rand(0,6),0);return m;});},
     shots:[
       {dur:4.4,sub:'The blast hurls you deep into the rock beneath the island.',enter(){G.shake=.6;SFX.rumble();},update(k,t,dt,c){c.party.forEach((m,i)=>{const e=ease(clamp((k-.3-i*.1)/.45,0,1));m.rotation.x=-Math.PI/2*(1-e);m.position.y=.2*(1-e);});if(Math.random()<dt*6)burst(new V3(s.x+rand(-3,3),WALLH-.2,s.z+rand(-3,3)),0x8a8070,3,1);},cam:k=>camPath([s.x+3.4,.9,s.z+3],[s.x+2.6,1.7,s.z+2.4],[s.x,.4,s.z],[s.x,1.2,s.z],k)},
       {dur:3.8,sub:'The island is breaking apart. Dig and cut your way to the sea.',enter(){G.shake=.4;noise(1.6,.3,110);},update(k,t,dt,c){c.party.forEach(m=>{m.rotation.x=0;m.position.y=0;m.rotation.y=lerp(m.rotation.y,Math.PI/2,.08);});},cam:k=>{const o=LV.obs[0];const oc=o?cellCenter(o.i,o.j):{x:s.x+12,z:s.z};camPath([s.x-1.8,2.9,s.z+1.6],[s.x-1.2,2.6,s.z+1],[s.x+4,1.4,s.z],[oc.x,1.2,oc.z],k);}}],
@@ -2261,7 +2301,7 @@ function playSunset(){G.mode='finale';clearWorld();setAmbient('ocean');
   const og=new THREE.PlaneGeometry(900,900,90,90);og.rotateX(-Math.PI/2);const ocean=new THREE.Mesh(og,M(0x2c3458,{roughness:.22,metalness:.35}));world.add(ocean);
   const isle=new THREE.Group();const P2=[part(GB.cone,0x231a30,0,14,0,0,0,0,120,36,90),part(GB.cone,0x2a1e36,70,9,20,0,.4,0,70,24,60),part(GB.cone,0x1e1628,-60,7,-10,0,.8,0,60,18,50),part(GB.box,0x2c2034,0,1,0,0,0,0,300,3,140)];
   isle.add(new THREE.Mesh(merge(P2),new THREE.MeshBasicMaterial({color:0xc08a78,transparent:true,opacity:.55,fog:false,depthWrite:false})));isle.position.set(70,-.4,-760);isle.scale.set(.16,.2,.16);world.add(isle);
-  const boats=G.names.map((n,i)=>{const look=i===0?PLAYER_LOOK:ALLY_LOOK[(i-1)%3];const hm=makeHuman(look[0],look[1],look[2]);const b=boatSeat(hm);b.userData.hm=hm;const off=[0,-7,7,-14][i];b.position.set(off,0,40+Math.abs(off)*.6);b.rotation.y=Math.PI;world.add(b);return b;});
+  const boats=G.names.map((n,i)=>{const look=i===0?PLAYER_LOOK:ALLY_LOOK[(i-1)%ALLY_LOOK.length];const hm=makeHuman(look[0],look[1],look[2]);const b=boatSeat(hm);b.userData.hm=hm;const off=[0,-7,7,-14,13.3][i];b.position.set(off,0,40+Math.abs(off)*.6);b.rotation.y=Math.PI;world.add(b);return b;});
   const lead=boats[0];
   playCine({ambient(c,dt){const p=og.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,waveY(p.getX(i),p.getZ(i),T)*.45);p.needsUpdate=true;
       boats.forEach((b,i)=>{b.position.z-=dt*3.2;b.position.y=waveY(b.position.x,b.position.z,T)*.45-.1;b.rotation.x=Math.sin(T*1.2+i)*.04;b.rotation.z=Math.sin(T*1.5+i)*.04;const r=Math.sin(T*2.6+i*.7);b.userData.oars.forEach((o,j)=>{o.rotation.y=r*.5*(j?-1:1);o.rotation.z=(Math.cos(T*2.6+i*.7)*.25+.15)*(j?-1:1);});const u=b.userData.hm.userData;u.aL.rotation.x=u.aR.rotation.x=-1.1+r*.4;});},
@@ -2288,7 +2328,7 @@ function interact(){if(!playing())return;const p=G.prompt;if(p&&p.act)p.act();}
 const STORY_KEYS=['story','campBuilt','campHP','fireLit','boatBuilt','dockBuilt','ammo','salvaged','stairFound','huntedBoar','boatHP'];
 function saveCheckpoint(stage){const cp={stage,names:G.names.slice(),day:G.day,hour:G.hour,inv:{...G.inv},tools:{...G.tools},hunger:G.hunger,chapter:G.chapter,level:G.level,maxHp:G.maxHp,dmgBonus:G.dmgBonus,kills:G.kills,runSeed:G.runSeed,startedAt:G.startedAt,dungeonTime:G.dungeonTime,ev:{...G.ev}};
   STORY_KEYS.forEach(k=>cp[k]=G[k]);if(cp.story===3){cp.story=2;}
-  G.cp=cp;try{localStorage.setItem(SAVE_KEY,JSON.stringify(cp));}catch(e){}}
+  G.cp=cp;try{localStorage.setItem(NET.on?SAVE_KEY+'-online':SAVE_KEY,JSON.stringify(cp));}catch(e){}}
 function applyCheckpoint(cp){Object.assign(G,NEW_STORY(),{names:cp.names.slice(),day:cp.day,hour:cp.hour,discovering:false,inv:Object.assign(NEW_INV(),cp.inv),tools:Object.assign(NEW_TOOLS(),cp.tools),hunger:cp.hunger??80,chapter:cp.chapter,level:cp.level,maxHp:cp.maxHp,dmgBonus:cp.dmgBonus,kills:cp.kills,runSeed:cp.runSeed,startedAt:cp.startedAt||Date.now(),dungeonTime:cp.dungeonTime||0,ev:{...(cp.ev||{})},cp});
   STORY_KEYS.forEach(k=>{if(cp[k]!==undefined)G[k]=cp[k];});if(cp.dockBuilt===undefined&&(G.boatBuilt||G.salvaged>0||G.story>=2))G.dockBuilt=true;if(cp.ammo===undefined)G.ammo=0;G.ev.zombies=0;
   G.hp=G.maxHp;G.stamina=100;G.energy=100;G.breath=100;G.weapon=-1;G.paused=false;G.overlay=false;G.crafting=false;G.hurtFlash=0;G.aboard=false;G.zw=null;G.ibar=null;
@@ -2317,8 +2357,9 @@ function die(kind){if(G.overlay&&!kind)return;if(G.mode==='end')return;P.fire=fa
   $('#deadEyebrow').textContent=v[0];$('#deadTitle').textContent=v[1];$('#deadText').textContent=v[2];$('#retryBtn').textContent=v[3];$('#dead').hidden=false;setTimeout(()=>$('#retryBtn').focus(),50);}
 function retry(){$('#dead').hidden=true;G.overlay=false;
   if(G.deadMode==='island'){islandRespawn();lock();return;}
+  if(NET.on&&NET.started&&(G.deadMode==='dungeon'||G.deadMode==='temple')&&LV){netRespawn();lock();return;}
   applyCheckpoint(G.cp);resumeStage(G.cp.stage);lock();}
-function goMenu(){if(CINE){G.skipping=true;CINE.onEnd=null;try{endCine();}finally{G.skipping=false;}}
+function goMenu(){if(NET.on){netReset();try{const s=localStorage.getItem(SAVE_KEY);G.cp=s?JSON.parse(s):null;}catch(e){G.cp=null;}}if(CINE){G.skipping=true;CINE.onEnd=null;try{endCine();}finally{G.skipping=false;}}
   G.mode='menu';G.paused=false;G.overlay=false;G.crafting=false;$('#hud').style.visibility='';['pause','dead','end','craft'].forEach(id=>$('#'+id).hidden=true);$('#hud').hidden=true;$('#touch').hidden=true;$('#banner').hidden=true;
   fade(0,10,false);buildIsland(true);setAmbient('ocean');$('#menu').hidden=false;refreshMenu();unlock();}
 
@@ -2386,8 +2427,8 @@ function refreshMenu(){const cp=G.cp;const b=$('#contBtn');if(cp&&cp.names){b.hi
   if(!namesBox.children.length){if(cp&&cp.names)cp.names.forEach(n=>addNameRow(n));else addNameRow('');}}
 $('#menuForm').addEventListener('submit',e=>{e.preventDefault();const names=[...namesBox.querySelectorAll('input')].map(i=>i.value.trim().replace(/\s+/g,' ')).filter(Boolean);
   if(!names.length){$('#menuErr').textContent='Type at least one name to begin.';namesBox.querySelector('input').focus();return;}
-  $('#menuErr').textContent='';initAudio();$('#menu').hidden=true;newGame(names.slice(0,4));lock();});
-$('#contBtn').onclick=()=>{if(!G.cp)return;initAudio();$('#menu').hidden=true;applyCheckpoint(G.cp);resumeStage(G.cp.stage);lock();};
+  $('#menuErr').textContent='';initAudio();$('#menu').hidden=true;netReset();newGame(names.slice(0,4));lock();});
+$('#contBtn').onclick=()=>{if(!G.cp)return;netReset();initAudio();$('#menu').hidden=true;applyCheckpoint(G.cp);resumeStage(G.cp.stage);lock();};
 
 /* ---------- HUD ---------- */
 const el={ammoN:$('#ammoN'),tag:$('#tag'),sub:$('#sub'),obj:$('#obj'),compass:$('#compass'),arrow:$('#arrow'),clabel:$('#clabel'),bossbar:$('#bossbar'),bfill:$('#bfill'),mm:$('#minimap'),party:$('#party'),hpF:$('#hpF'),hpN:$('#hpN'),huRow:$('#huRow'),huF:$('#huF'),huN:$('#huN'),stF:$('#stF'),enRow:$('#enRow'),enF:$('#enF'),hotbar:$('#hotbar'),boltN:$('#boltN'),inv:$('#inv'),prompt:$('#prompt'),boatHud:$('#boatHud'),vitals:$('#vitals'),bDist:$('#bDist'),bDistF:$('#bDistF'),bHull:$('#bHull'),bTime:$('#bTime'),vig:$('#vignette'),cross:$('#crosshair')};
@@ -2419,7 +2460,7 @@ function hud(){const mode=G.mode,boat=mode==='boat';
   const ib=mode==='island'&&G.ibar&&G.ibar.active&&!G.ibar.dead?G.ibar:null;const showBoss=!!(boss&&boss.active&&!boss.dying)||!!ib;setH(el.bossbar,!showBoss);
   if(ib){setT(el.bossName,ib.name);setW(el.bfill,ib.hp/ib.max*100);el.bfill.classList.remove('shield');}else if(showBoss){setT(el.bossName,'The Asylum Entity');setW(el.bfill,boss.hp/boss.max*100);el.bfill.classList.toggle('shield',boss.shield_on);}
   const dun=mode==='dungeon';setH(el.mm,!dun);
-  const ph=mode==='island'||mode==='temple'?G.names.join('|'):'';if(el.party._h!==ph){el.party._h=ph;el.party.innerHTML='';if(ph)G.names.forEach((n,i)=>{const li=document.createElement('li');li.textContent=n;if(i===0){const s=document.createElement('span');s.textContent=' you';li.appendChild(s);}el.party.appendChild(li);});}
+  const ph=mode==='island'||mode==='temple'?G.names.join('|'):'';if(el.party._h!==ph){el.party._h=ph;el.party.innerHTML='';if(ph)G.names.forEach((n,i)=>{const li=document.createElement('li');li.textContent=n;if(i===(G.me||0)){const s=document.createElement('span');s.textContent=' you';li.appendChild(s);}el.party.appendChild(li);});}
   const low=G.hp<G.maxHp*.3&&!boat?.35+Math.sin(T*5)*.15:0;el.vig.style.opacity=Math.max(G.hurtFlash,low).toFixed(2);}
 function drawMinimap(){const W=LV.W,H=LV.H,sz=el.mm.width,cs=sz/Math.max(W,H);mmx.clearRect(0,0,sz,sz);const oy=(sz-H*cs)/2;mmx.save();mmx.translate(0,oy);const pi=Math.floor(P.pos.x/S),pj=Math.floor(P.pos.z/S);
   for(let j=-3;j<=3;j++)for(let i=-3;i<=3;i++){const X=pi+i,Y=pj+j;if(X>=0&&Y>=0&&X<W&&Y<H&&i*i+j*j<=11)LV.explored[Y*W+X]=1;}
@@ -2429,6 +2470,169 @@ function drawMinimap(){const W=LV.W,H=LV.H,sz=el.mm.width,cs=sz/Math.max(W,H);mm
   mmx.fillStyle='rgba(255,90,60,.9)';for(const e of enemies){if(e.dead)continue;const i=Math.floor(e.x/S),j=Math.floor(e.z/S);if(LV.explored[j*W+i]&&Math.hypot(e.x-P.pos.x,e.z-P.pos.z)<16)mmx.fillRect(e.x/S*cs-2,e.z/S*cs-2,4,4);}
   mmx.translate(P.pos.x/S*cs,P.pos.z/S*cs);mmx.rotate(-P.yaw);mmx.fillStyle='#ff8a3d';mmx.beginPath();mmx.moveTo(0,-7);mmx.lineTo(5,5);mmx.lineTo(-5,5);mmx.closePath();mmx.fill();mmx.restore();}
 
+
+/* ---------- online play (PeerJS) ---------- */
+/* One player hosts: their browser keeps the story clock, runs the timed events, decides chapter changes and
+   relays everyone's position. Others join with a 5-letter room code. PeerJS's free public server only
+   introduces the browsers to each other; game data then goes directly between them (WebRTC).
+   Step 1 of the multiplayer build: shared story, clock, buildings, cutscenes and chapter changes, and every
+   survivor sees the others. Each computer still runs its own creatures for now. */
+const PEERJS_URL='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+const NET_VER=1, NET_MAX=5, CODE_ABC='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const NET={on:false,host:false,started:false,peer:null,hostConn:null,clients:new Map(),code:'',me:0,myName:'',players:{},applying:false,sendT:0,worldT:0,joinTO:0};
+const netClient=()=>NET.on&&!NET.host;
+function peerOpts(){let q=null;try{q=new URLSearchParams(location.search).get('peer');}catch(e){}
+  if(q){const[h,p]=q.split(':');return{host:h,port:+p||9000,path:'/',secure:false,debug:0};}return{debug:0};}
+let peerLoad=null;
+function loadPeerJS(){if(window.Peer)return Promise.resolve();if(peerLoad)return peerLoad;
+  peerLoad=new Promise((res,rej)=>{const s=document.createElement('script');s.src=PEERJS_URL;s.async=true;s.onload=()=>window.Peer?res():rej(new Error('load'));s.onerror=()=>{peerLoad=null;rej(new Error('load'));};document.head.appendChild(s);});return peerLoad;}
+const newCode=()=>Array.from({length:5},()=>CODE_ABC[Math.floor(Math.random()*CODE_ABC.length)]).join('');
+const roomId=code=>'island-of-asylum-'+code.toLowerCase();
+const cleanName=n=>String(n||'').replace(/[\u0000-\u001f\u007f]/g,'').replace(/\s+/g,' ').trim().slice(0,14)||'Survivor';
+
+/* --- lobby screen --- */
+function lobbyShow(title,code,status){$('#menu').hidden=true;$('#lobby').hidden=false;$('#lobbyEyebrow').textContent=NET.host?'Online lobby · you are hosting':'Online lobby';$('#lobbyTitle').textContent=title;$('#lobbyCode').textContent=code||'·····';lobbyStatus(status);
+  $('#lobbyStart').hidden=!NET.host;$('#lobbyCopy').hidden=!code;}
+function lobbyStatus(t){$('#lobbyStatus').textContent=t;}
+function lobbyList(names){const ol=$('#lobbyList');ol.innerHTML='';names.forEach((n,i)=>{const li=document.createElement('li');li.textContent=n;const tags=[i===0?'host':'',n===NET.myName&&i===NET.me?'you':''].filter(Boolean).join(' · ');if(tags){const s=document.createElement('span');s.textContent=tags;li.appendChild(s);}ol.appendChild(li);});
+  if(NET.host){$('#lobbyStart').disabled=false;$('#lobbyStart').textContent=names.length>1?`Start with ${names.length} survivors`:'Start alone (others can’t join later)';}}
+function myMenuName(){const i=$('#name0');return cleanName(i&&i.value);}
+function menuNeedsName(){const i=$('#name0');if(i&&i.value.trim())return false;$('#menuErr').textContent='Type your name in the first box, then host or join.';if(i)i.focus();return true;}
+
+/* --- hosting --- */
+async function hostOnline(){if(menuNeedsName())return;initAudio();netReset();NET.on=true;NET.host=true;NET.me=0;NET.myName=myMenuName();
+  lobbyShow('Room code','','Connecting to the matchmaking server…');lobbyList([NET.myName]);$('#lobbyStart').disabled=true;
+  try{await loadPeerJS();}catch(e){lobbyStatus('Could not load the online library. Check your connection, or play solo.');return;}
+  const tryOpen=(n)=>{NET.code=newCode();const peer=new Peer(roomId(NET.code),peerOpts());NET.peer=peer;
+    peer.on('open',()=>{lobbyShow('Room code',NET.code,'Send this code to your friends. They open this same page, type their name and the code, and press Join.');lobbyList(hostNames());});
+    peer.on('connection',conn=>hostAccept(conn));
+    peer.on('disconnected',()=>{if(NET.peer===peer&&!peer.destroyed)try{peer.reconnect();}catch(e){}});
+    peer.on('error',err=>{if(NET.peer!==peer)return;if(err.type==='unavailable-id'&&n<4){peer.destroy();tryOpen(n+1);return;}
+      if(!NET.started)lobbyStatus(netErrText(err));else toast('Online connection trouble: '+netErrText(err),'net',4000);});};
+  tryOpen(0);}
+function hostNames(){return[NET.myName,...[...NET.clients.values()].map(c=>c.name)];}
+function hostAccept(conn){conn.on('data',d=>hostData(conn,d));
+  conn.on('close',()=>{const c=NET.clients.get(conn.peer);if(!c)return;NET.clients.delete(conn.peer);
+    if(NET.started){const p=NET.players[c.slot];if(p)p.gone=true;toast(`${c.name} left the game`,'net',3600);netBcast({t:'gone',s:c.slot});}else{lobbyList(hostNames());netBcastLobby();}});}
+function hostData(conn,d){if(!d||typeof d!=='object')return;const c=NET.clients.get(conn.peer);
+  if(d.t==='hello'){if(c)return;if(d.v!==NET_VER){conn.send({t:'deny',why:'Your copy of the game is a different version from the host’s. Reload the page and try again.'});return;}
+    if(NET.started){conn.send({t:'deny',why:'That game has already started.'});return;}
+    if(NET.clients.size>=NET_MAX-1){conn.send({t:'deny',why:'That game is full (5 survivors).'});return;}
+    let name=cleanName(d.name);const taken=new Set(hostNames());let k=2;const base=name;while(taken.has(name))name=(base.slice(0,11)+' '+k++);
+    NET.clients.set(conn.peer,{conn,name,slot:-1});lobbyList(hostNames());netBcastLobby();SFX.pickup();return;}
+  if(!c)return;
+  if(d.t==='p'&&Array.isArray(d.s)&&c.slot>=0){const s=d.s;NET.players[c.slot]={x:+s[0]||0,y:+s[1]||0,z:+s[2]||0,yaw:+s[3]||0,mk:String(s[4]).slice(0,8),mv:!!s[5],t:performance.now()};return;}
+  if(d.t==='req'&&typeof d.n==='string'&&NET_REQ.has(d.n)){hostDo(d.n,...(Array.isArray(d.a)?d.a.slice(0,3):[]));return;}
+  if(d.t==='flags'&&d.f&&typeof d.f==='object')netMergeFlags(d.f);}
+function netBcastLobby(){const names=hostNames();[...NET.clients.values()].forEach((c,i)=>{try{c.conn.send({t:'lobby',names,me:i+1});}catch(e){}});}
+function hostStart(){if(!NET.host||NET.started)return;const names=hostNames();const seed=randi(1,99999);let i=1;
+  for(const c of NET.clients.values()){c.slot=i;try{c.conn.send({t:'start',names,me:i,seed});}catch(e){}i++;}
+  netBegin(names,0,seed);}
+
+/* --- joining --- */
+async function joinOnline(){if(menuNeedsName())return;const code=($('#joinCode').value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(code.length!==5){$('#menuErr').textContent='Room codes are 5 letters and numbers.';$('#joinCode').focus();return;}
+  initAudio();netReset();NET.on=true;NET.host=false;NET.code=code;NET.myName=myMenuName();
+  lobbyShow('Joining',code,'Connecting…');lobbyList([]);
+  try{await loadPeerJS();}catch(e){lobbyStatus('Could not load the online library. Check your connection, or play solo.');return;}
+  const peer=new Peer(peerOpts());NET.peer=peer;
+  NET.joinTO=setTimeout(()=>{if(!NET.hostConn||!NET.hostConn.open)lobbyStatus('No answer from that room. Check the code, and that the host still has the lobby open.');},15000);
+  peer.on('open',()=>{const conn=peer.connect(roomId(code),{reliable:true});NET.hostConn=conn;
+    conn.on('open',()=>{clearTimeout(NET.joinTO);conn.send({t:'hello',name:NET.myName,v:NET_VER});lobbyStatus('Connected. Waiting for the host to start the game…');});
+    conn.on('data',d=>clientData(d));
+    conn.on('close',()=>{if(NET.hostConn!==conn)return;if(NET.started){netLeave(true);toast('The host left. The online game has ended.','net',5000);}else lobbyStatus('Disconnected from the host.');});});
+  peer.on('error',err=>{if(NET.peer!==peer)return;lobbyStatus(err.type==='peer-unavailable'?'No game with that code. Check it with the host.':netErrText(err));});}
+function clientData(d){if(!d||typeof d!=='object')return;
+  if(d.t==='deny'){lobbyStatus(String(d.why||'The host turned you away.'));return;}
+  if(d.t==='lobby'&&Array.isArray(d.names)){NET.me=d.me|0;lobbyList(d.names.map(cleanName));return;}
+  if(d.t==='start'&&Array.isArray(d.names)){netBegin(d.names.map(cleanName).slice(0,NET_MAX),d.me|0,d.seed|0);return;}
+  if(!NET.started)return;
+  if(d.t==='ps'&&Array.isArray(d.a)){for(const s of d.a){if(!Array.isArray(s))continue;const slot=s[0]|0;if(slot===NET.me)continue;const old=NET.players[slot];NET.players[slot]={x:+s[1]||0,y:+s[2]||0,z:+s[3]||0,yaw:+s[4]||0,mk:String(s[5]).slice(0,8),mv:!!s[6],t:performance.now(),gone:old&&old.gone};}return;}
+  if(d.t==='w'&&d.d)netApplyWorld(d.d);
+  if(d.t==='do'&&typeof d.n==='string'&&NETDO[d.n]){NET.applying=true;try{NETDO[d.n](...(Array.isArray(d.a)?d.a:[]));}finally{NET.applying=false;}}
+  if(d.t==='gone'){const p=NET.players[d.s|0];if(p)p.gone=true;}}
+function netErrText(err){const t=err&&err.type;return t==='network'||t==='server-error'||t==='socket-error'||t==='socket-closed'?'Can’t reach the matchmaking server right now. Try again in a minute, or play solo.':t==='browser-incompatible'?'This browser can’t do online play. Try Chrome, Edge or Firefox.':t==='webrtc'?'Your network blocked the connection. Try another network.':'Online error: '+(t||'unknown');}
+
+/* --- starting, leaving --- */
+function netBegin(names,me,seed){NET.started=true;NET.me=me;NET.players={};$('#lobby').hidden=true;$('#menuErr').textContent='';
+  G.me=me;newGame(names);G.runSeed=seed||G.runSeed;saveCheckpoint('island');lock();
+  $('#netNote').hidden=false;$('#netNote').textContent=NET.host?`Hosting · code ${NET.code}`:`Online · ${names[0]} is hosting`;}
+function netReset(){clearTimeout(NET.joinTO);if(NET.peer){try{NET.peer.destroy();}catch(e){}}Object.assign(NET,{on:false,host:false,started:false,peer:null,hostConn:null,code:'',me:0,players:{},applying:false,sendT:0,worldT:0});NET.clients=new Map();G.me=0;$('#netNote').hidden=true;}
+function netLeave(toMenu){const was=NET.on;netReset();if(toMenu&&was&&G.mode!=='menu')goMenu();}
+$('#hostBtn').onclick=hostOnline;$('#joinBtn').onclick=joinOnline;
+$('#joinCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();joinOnline();}});
+$('#lobbyStart').onclick=hostStart;
+$('#lobbyLeave').onclick=()=>{netReset();$('#lobby').hidden=true;$('#menu').hidden=false;};
+$('#lobbyCopy').onclick=()=>{const c=NET.code;try{navigator.clipboard.writeText(c).then(()=>lobbyStatus('Code copied. Paste it to your friends.'),()=>lobbyStatus('Copy it by hand: '+c));}catch(e){lobbyStatus('Copy it by hand: '+c);}};
+addEventListener('beforeunload',()=>{if(NET.peer)try{NET.peer.destroy();}catch(e){}});
+
+/* --- messages --- */
+function netSendHost(m){if(NET.hostConn&&NET.hostConn.open)try{NET.hostConn.send(m);}catch(e){}}
+function netBcast(m){for(const c of NET.clients.values())if(c.conn.open)try{c.conn.send(m);}catch(e){}}
+
+/* the shared actions: the host runs each one and tells everyone else to run it too; a guest asks the host */
+const NETDO={
+  zombies:()=>cineZombies(),
+  war:()=>startWar(),
+  event:id=>{const e=EVENTS.find(e=>e.id===id);if(e){G.ev[e.id]=1;e.fn();}},
+  bigfoot:()=>{if(G.mode!=='island'||ibosses.some(b=>b.kind==='bigfoot'))return;G.ev.bigfoot=1;cineBigfoot(spawnBigfoot());},
+  monster:()=>{if(G.mode!=='island'||ibosses.some(b=>b.kind==='monster'))return;G.ev.monster=1;cineMonster(spawnMonster());},
+  discover:fi=>{if(G.mode!=='island'||G.stairFound||G.discovering)return;cineDiscovery(fi|0);},
+  sleep:()=>{if(G.mode==='island')trySleep(true);},
+  enterStructure:()=>{if(G.mode==='island')enterStructure();},
+  dive:()=>{if(G.mode==='temple'||(LV&&LV.kind==='temple'))startDive();},
+  next:(ch,lv)=>{if(G.mode==='dungeon'&&LV&&LV.kind==='level'&&G.chapter===ch&&G.level===lv)nextLevel();},
+  bossDown:()=>bossDown(),
+  caveExit:()=>{if(LV&&LV.kind==='cave'&&!LV.exitDone){LV.exitDone=LV.exitCine=true;cineExit();}},
+};
+const NET_REQ=new Set(['sleep','enterStructure','dive','next','bossDown','caveExit']);
+function hostDo(n,...a){if(!NET.on||!NET.started){NETDO[n](...a);return;}
+  if(NET.host){netBcast({t:'do',n,a});NETDO[n](...a);}else netSendHost({t:'req',n,a});}
+
+/* what everyone's world must agree on, sent by the host twice a second */
+const NET_FLAGS=['campBuilt','campHP','fireLit','dockBuilt','boatBuilt','salvaged','stairFound'];
+function netWorld(){const d={day:G.day,hour:+G.hour.toFixed(3),story:G.story,ev:G.ev};NET_FLAGS.forEach(k=>d[k]=G[k]);return d;}
+function netApplyWorld(d){if(!activeMode()||G.mode==='boat')return;
+  G.day=d.day|0||G.day;if(typeof d.hour==='number'&&!G.zw)G.hour=d.hour;
+  let camp=false;for(const k of NET_FLAGS){if(d[k]===undefined||d[k]===G[k])continue;if(k==='stairFound'){if(d[k]&&!G.stairFound){G.stairFound=true;if(ISL&&ISL.stair)ISL.stair.userData.cover.visible=false;}continue;}G[k]=d[k];camp=true;}
+  if(camp&&ISL&&G.mode==='island')refreshCamp();
+  if(d.ev&&typeof d.ev==='object')Object.assign(G.ev,d.ev);
+  if(G.mode==='island'&&typeof d.story==='number'&&d.story!==G.story&&d.story<=4&&!CINE){
+    if(d.story===4&&G.story===3){G.zw=null;foes.forEach(f=>{if(f.type==='zombie'||f.type==='crawler'){f.dead=true;f.deadT=0;}});}
+    if(d.story!==3)setStory(d.story,d.story===4&&G.story===3);}}
+/* a guest who builds or salvages tells the host, who adds it to the shared world */
+function netFlags(){if(!netClient())return;const f={};NET_FLAGS.forEach(k=>f[k]=G[k]);netSendHost({t:'flags',f});}
+function netMergeFlags(f){let ch=false;for(const k of['campBuilt','fireLit','dockBuilt','boatBuilt','stairFound'])if(f[k]===true&&!G[k]){G[k]=true;ch=true;}
+  if(typeof f.salvaged==='number'&&f.salvaged>G.salvaged){G.salvaged=Math.min(4,f.salvaged|0);ch=true;}
+  if(f.campBuilt&&typeof f.campHP==='number'&&f.campHP>G.campHP){G.campHP=Math.min(100,f.campHP);ch=true;}
+  if(ch&&ISL&&G.mode==='island')refreshCamp();}
+/* is any survivor (this one or a remote one) near a spot on the island? */
+function nearAny(x,z,r,test){if(Math.hypot(P.pos.x-x,P.pos.z-z)<r&&(!test||test(P.pos.x,P.pos.z)))return true;if(!NET.on)return false;
+  for(const k in NET.players){const p=NET.players[k];if(p.gone||p.mk!=='i')continue;if(Math.hypot(p.x-x,p.z-z)<r&&(!test||test(p.x,p.z)))return true;}return false;}
+function netModeKey(){return G.mode==='island'?(G.aboard?'ib':'i'):G.mode==='temple'||(LV&&LV.kind==='temple')?'t':G.mode==='dungeon'&&LV?(LV.kind==='cave'?'c':LV.kind==='boss'?'b4':'d'+G.chapter+G.level):G.mode==='boat'?'s':'x';}
+function netTick(dt){if(!NET.on||!NET.started)return;NET.sendT-=dt;
+  if(NET.sendT<=0){NET.sendT=.1;const me=[+P.pos.x.toFixed(2),+P.pos.y.toFixed(2),+P.pos.z.toFixed(2),+P.yaw.toFixed(3),netModeKey(),P.moving?1:0];
+    if(NET.host){const a=[[0,...me]];for(const k in NET.players){const p=NET.players[k];if(p.gone)continue;a.push([+k,p.x,p.y,p.z,p.yaw,p.mk,p.mv?1:0]);}netBcast({t:'ps',a});}
+    else netSendHost({t:'p',s:me});}
+  if(NET.host){NET.worldT-=dt;if(NET.worldT<=0){NET.worldT=.5;netBcast({t:'w',d:netWorld()});}}}
+
+/* other survivors: drawn where their computer says they are, when they are in the same place as you */
+function netAvatar(a,dt,mk){const s=NET.players[a.slot];const u=a.mesh.userData;
+  if(!s||s.gone||s.mk!==mk||mk==='s'){a.mesh.visible=false;a.seen=false;return;}
+  if(!a.seen){a.x=s.x;a.z=s.z;a.y=s.y;a.face=s.yaw+Math.PI;a.seen=true;}
+  const k=Math.min(1,dt*10);a.x=lerp(a.x,s.x,k);a.z=lerp(a.z,s.z,k);a.y=lerp(a.y,s.y,k);a.face+=angDiff(s.yaw+Math.PI,a.face)*k;
+  if(s.mv)a.ph+=dt*9;const sw=s.mv?Math.sin(a.ph)*.6:0;u.lL.rotation.x=sw;u.lR.rotation.x=-sw;u.aL.rotation.x=-sw*.6;u.aR.rotation.x=sw*.6;
+  a.mesh.visible=true;a.mesh.position.set(a.x,a.y,a.z);a.mesh.rotation.y=a.face;}
+/* online, falling underground does not reset the level for everyone: you get back up at the start of it */
+function netRespawn(){G.hp=Math.max(30,G.maxHp*.6);const s=LV.start||{cx:1,cy:1};const c=cellCenter(s.cx,s.cy);P.pos.set(c.x,0,c.z);P.vy=0;G.hurtFlash=0;showHud();toast('You get back on your feet','net',2400);}
+/* a guest who builds or salvages tells the host */
+{const wrap=(f)=>function(...a){const r=f.apply(this,a);netFlags();return r;};
+  buildCamp=wrap(buildCamp);repairCamp=wrap(repairCamp);buildFire=wrap(buildFire);buildDock=wrap(buildDock);buildBoat=wrap(buildBoat);salvage=wrap(salvage);}
+/* browsers stop drawing hidden tabs; online, a hidden tab keeps the game running (without drawing) so a host who
+   switches windows does not freeze everyone. A tiny worker supplies the beat, since page timers get throttled. */
+{let wk=null,last=0;const beat=()=>{if(!NET.on||!NET.started||!document.hidden)return;const now=performance.now();let el=Math.min(1,(now-last)/1000);last=now;while(el>0){const d=Math.min(.05,el);step(d);el-=d;}};
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&NET.on&&NET.started){last=performance.now();if(!wk){try{const url=URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),100)'],{type:'text/javascript'}));wk=new Worker(url);wk.onmessage=beat;}catch(e){wk=null;}}}
+    else if(!document.hidden){lastT=performance.now();}});}
 /* ---------- loop ---------- */
 function commonAnim(dt){
   if(ISL){if(ISL.water)ISL.water.position.y=Math.sin(T*.6)*.08;if(G.fireLit&&ISL.fire){ISL.fire.flame.scale.y=1+Math.sin(T*13)*.15;ISL.fire.light.intensity=1.7+Math.sin(T*17)*.3;}}
@@ -2438,7 +2642,7 @@ function commonAnim(dt){
   updateFalls(dt);updateParts(dt);}
 let lastT=performance.now();
 function step(dt){T+=dt;
-  try{
+  try{netTick(dt);
   if(CINE){updateCine(dt);commonAnim(dt);riseOnly(dt);if(boss)updateBoss(dt,true);G.shake=Math.max(0,G.shake-dt*1.2);}
   else if(G.mode==='menu'){const a=T*.04;camera.position.set(Math.sin(a)*250,62,Math.cos(a)*250);camera.lookAt(0,8,0);P.pos.set(0,0,0);applySky(17.4);commonAnim(dt);}
   else if(playing()){
@@ -2446,6 +2650,8 @@ function step(dt){T+=dt;
     else{if(G.mode==='island'&&G.aboard&&IB)updateSail(dt);else updatePlayer(dt);if(G.mode==='island')updateIsland(dt);else updateDungeon(dt);if(!CINE&&activeMode()&&G.mode!=='boat'){updateWeapons(dt);updatePickups(dt);updateAllies(dt);}}
     if(!CINE&&activeMode()){updateProjs(dt);commonAnim(dt);G.hurtFlash=Math.max(0,G.hurtFlash-dt*2.2);G.shake=Math.max(0,G.shake-dt*1.5);hud();
       if(G.mode==='dungeon'&&LV){mmT-=dt;if(mmT<=0){mmT=.15;drawMinimap();}}}}
+  else if(NET.on&&NET.started&&activeMode()&&G.mode!=='boat'){/* online, the world keeps going while you are paused, crafting or down */
+    if(G.mode==='island'){if(!G.aboard)updateIsland(dt);}else updateDungeon(dt);updateProjs(dt);updateAllies(dt);commonAnim(dt);hud();}
   }catch(err){console.error(err);}
 }
 function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,Math.max(0,(now-lastT)/1000));lastT=now;step(dt);
