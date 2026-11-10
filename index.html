@@ -1,9 +1,5 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="A first-person survival game: wash ashore, survive ten days, uncover what is buried beneath the jungle, and escape before the island sinks.">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="description" content="The Island of Asylum: a first-person jungle survival game in ten chapters."></head><body>
 <title>The Island of Asylum</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -167,6 +163,8 @@ body.touch #vitals{width:min(200px,42vw)}
 body.touch #inv{bottom:calc(200px + env(safe-area-inset-bottom,0px))}
 body.touch #tl{max-width:50vw}
 body.touch #tl .obj{font-size:13px}
+#hotbar .slot.locked{display:none}
+@media (max-width:1280px){body:not(.touch) #hotbar{bottom:calc(118px + env(safe-area-inset-bottom,0px))}}
 @media (max-width:900px){
   body:not(.touch) #hotbar{left:auto;right:calc(16px + env(safe-area-inset-right,0px));transform:none;bottom:calc(150px + env(safe-area-inset-bottom,0px))}
   body:not(.touch) #hotbar .slot:not(.on){display:none}
@@ -182,8 +180,6 @@ body.touch #tl .obj{font-size:13px}
 }
 @media (prefers-reduced-motion: reduce){ .toast,#banner.show{animation:none} .lb{transition:none} }
 </style>
-</head>
-<body>
 
 <div id="app">
   <div id="stage"></div>
@@ -205,10 +201,12 @@ body.touch #tl .obj{font-size:13px}
       <div class="bar bb" id="btRow" hidden><span>Boat</span><div class="track"><i id="btF"></i></div><b id="btN"></b></div>
     </div>
     <div id="hotbar">
-      <div class="slot" data-w="0"><kbd>1</kbd>Axe</div>
-      <div class="slot" data-w="1"><kbd>2</kbd>Pickaxe</div>
-      <div class="slot" data-w="2"><kbd>3</kbd>Crossbow <em id="boltN"></em></div>
-      <div class="slot" data-w="3"><kbd>4</kbd>Rune Staff</div>
+      <div class="slot" data-w="5"><kbd>1</kbd>Pistol <em id="ammoN"></em></div>
+      <div class="slot" data-w="0"><kbd>2</kbd>Axe</div>
+      <div class="slot" data-w="1"><kbd>3</kbd>Pickaxe</div>
+      <div class="slot" data-w="4"><kbd>4</kbd>Sword</div>
+      <div class="slot" data-w="2"><kbd>5</kbd>Crossbow <em id="boltN"></em></div>
+      <div class="slot" data-w="3"><kbd>6</kbd>Rune Staff</div>
     </div>
     <div id="inv"></div>
     <div id="prompt" hidden></div>
@@ -235,7 +233,7 @@ body.touch #tl .obj{font-size:13px}
     <form class="m-panel" id="menuForm" autocomplete="off">
       <div class="eyebrow">A survival story in ten chapters</div>
       <h1 class="m-title"><small>The Island of</small><span>Asylum</span></h1>
-      <p class="m-lede">Shipwrecked on a jungle island. Build a camp, salvage the wreck and fight off whatever lives here. Something is buried deep in the trees, and <em>the natives have been watching</em>.</p>
+      <p class="m-lede">August 1950. On the way to the Tongyeong landing, your transport is sunk by a North Korean torpedo. You wash up on an island that is on no chart, with a pistol and a few rounds. Build a camp, salvage the wreck and fight off whatever lives here. Something is buried deep in the trees, and <em>the natives have been watching</em>.</p>
       <div class="m-cap">Survivors (1 to 4) — the first name is you</div>
       <div class="names" id="names"></div>
       <button type="button" class="link" id="addName">+ Add a survivor</button>
@@ -246,7 +244,7 @@ body.touch #tl .obj{font-size:13px}
       </div>
       <div class="keys">
         <div><b>WASD</b> move · <b>Shift</b> sprint</div><div><b>Mouse</b> look · <b>Click</b> strike</div>
-        <div><b>E</b> use · <b>F</b> eat · <b>C</b> craft</div><div><b>1–4</b> tools · <b>Z</b> sleep</div>
+        <div><b>E</b> use · <b>F</b> eat · <b>C</b> craft</div><div><b>1–6</b> weapons · <b>Z</b> sleep</div>
       </div>
     </form>
   </section>
@@ -273,7 +271,7 @@ body.touch #tl .obj{font-size:13px}
       <label class="sl" for="sens">Look sensitivity <input type="range" id="sens" min="0.4" max="2.2" step="0.1" value="1"></label>
       <div class="keys">
         <div><b>WASD</b> move</div><div><b>Shift</b> sprint · <b>Space</b> jump</div>
-        <div><b>Click</b> strike / shoot</div><div><b>1–4</b> or <b>Q</b> switch tool</div>
+        <div><b>Click</b> strike / shoot</div><div><b>1–6</b> or <b>Q</b> switch weapon</div>
         <div><b>E</b> use / pick up</div><div><b>C</b> crafting</div>
         <div><b>F</b> eat · <b>Z</b> sleep</div><div><b>Enter</b> skip a cutscene</div>
         <div><b>P</b> or <b>Esc</b> pause</div><div>Progress saves at each stage</div>
@@ -331,6 +329,7 @@ const joinNames=a=>a.length<2?(a[0]||''):a.slice(0,-1).join(', ')+' and '+a[a.le
 const S=4, WALLH=4.2, HOUR_SEC=7;
 const ISL_R=165;
 const STAIR={x:-88,z:-30}, OUTPOST={x:58,z:34}, SWAMP={x:78,z:-48}, LAIR={x:-18,z:-128};
+const HILL=LAIR, HILL_CAVE={x:LAIR.x,z:LAIR.z-11};
 const LABEL={wood:'wood',stick:'sticks',stone:'stone',fiber:'vines',leaf:'palm leaves',meat:'meat',berry:'berries',bolts:'bolts'};
 /* story chapters: island chapters are 0..4, dungeon chapters 5..8 are G.chapter 1..4 underground, 9 is the epilogue */
 const CHAPTERS=['Prologue — Washed Ashore','Chapter 1 — Stocking Up','Chapter 2 — The Survival','Chapter 3 — A Zombie Attack','Chapter 4 — A Discovery','Chapter 5 — The Drowned Catacombs','Chapter 6 — The Bone Mines','Chapter 7 — The Fungal Hollows','Chapter 8 — The Heart of the Island','Epilogue — ESCAPE!'];
@@ -442,10 +441,12 @@ Object.assign(SFX,{
 
 /* ---------- state ---------- */
 const NEW_INV=()=>({wood:0,stick:0,stone:0,fiber:0,leaf:0,meat:0,berry:0,bolts:0});
-const NEW_TOOLS=()=>({axe:false,pick:false,bow:false,staff:false});
-const TOOL_KEYS=['axe','pick','bow','staff'];
-const NEW_STORY=()=>({story:0,campBuilt:false,campHP:100,fireLit:false,boatBuilt:false,salvaged:0,stairFound:false,ev:{},huntedBoar:false});
-const G={mode:'menu',names:['You'],day:1,hour:7,story:0,campBuilt:false,campHP:100,fireLit:false,boatBuilt:false,salvaged:0,stairFound:false,ev:{},aboard:false,boatHP:100,breath:100,discovering:false,
+const NEW_TOOLS=()=>({axe:false,pick:false,bow:false,staff:false,sword:false,pistol:false});
+const TOOL_KEYS=['axe','pick','bow','staff','sword','pistol'];
+/* hotbar order: key 1 is the pistol, then axe, pickaxe, sword, crossbow, rune staff */
+const KEY_W=[5,0,1,4,2,3];const PISTOL_ROUNDS=21;
+const NEW_STORY=()=>({story:0,campBuilt:false,campHP:100,fireLit:false,boatBuilt:false,dockBuilt:false,salvaged:0,stairFound:false,ev:{},huntedBoar:false,ammo:PISTOL_ROUNDS});
+const G={mode:'menu',names:['You'],day:1,hour:7,story:0,campBuilt:false,campHP:100,fireLit:false,boatBuilt:false,dockBuilt:false,salvaged:0,stairFound:false,ev:{},aboard:false,boatHP:100,breath:100,discovering:false,
   inv:NEW_INV(),tools:NEW_TOOLS(),hp:100,maxHp:100,hunger:100,stamina:100,energy:100,
   weapon:-1,dmgBonus:0,chapter:1,level:1,kills:0,hasKey:false,runSeed:1,
   paused:false,overlay:false,crafting:false,hurtFlash:0,shake:0,dungeonTime:0,cp:null,prompt:null,gatherT:30,lastHurt:0,
@@ -470,7 +471,7 @@ function fade(v,ms,white){const b=$('#black');if(white!==undefined)b.classList.t
 function blackNow(v,white){const b=$('#black');b.classList.toggle('white',!!white);b.style.transitionDuration='0ms';b.style.opacity=v;void b.offsetWidth;}
 
 /* ---------- island terrain ---------- */
-/* Bigger island: radius ~165 m. Sea cliff along the north, a swampy basin in the east (the Island Monster's lair),
+/* Bigger island: radius ~165 m. Sea cliff along the north, a swampy basin in the east (the Swamp Monster's lair),
    the camp on the south beach, the holdout outpost inland, and the hidden stairway deep in the western jungle. */
 function islandRaw(x,z){const a=Math.atan2(z,x);const R=ISL_R+Math.sin(a*3+.5)*9+Math.cos(a*5)*5+Math.sin(a*7+1)*3;const d=Math.hypot(x,z)/R;
   let h=(1-d*d)*9-.8;
@@ -481,7 +482,7 @@ function islandRaw(x,z){const a=Math.atan2(z,x);const R=ISL_R+Math.sin(a*3+.5)*9
   if(d>1)h-=(d-1)*40;return h;}
 function scanZ(x,z0,z1,step,test){for(let z=z0;step>0?z<=z1:z>=z1;z+=step)if(test(islandRaw(x,z)))return z;return z1;}
 const CAMP=(()=>{const x=8;const z=scanZ(x,175,60,-.5,h=>h>=2.1)-4;return{x,z,h:islandRaw(x,z)};})();
-const FLATS=[{x:CAMP.x,z:CAMP.z,h:CAMP.h,r0:9,r1:15},{x:STAIR.x,z:STAIR.z,h:islandRaw(STAIR.x,STAIR.z),r0:4,r1:9},{x:OUTPOST.x,z:OUTPOST.z,h:islandRaw(OUTPOST.x,OUTPOST.z),r0:9,r1:15}];
+const FLATS=[{x:CAMP.x,z:CAMP.z,h:CAMP.h,r0:9,r1:15},{x:STAIR.x,z:STAIR.z,h:islandRaw(STAIR.x,STAIR.z),r0:4,r1:9},{x:OUTPOST.x,z:OUTPOST.z,h:islandRaw(OUTPOST.x,OUTPOST.z),r0:9,r1:15},{x:HILL.x,z:HILL.z-4,h:islandRaw(HILL.x,HILL.z-4),r0:9,r1:15}];
 function islandH(x,z){let h=islandRaw(x,z);for(const f of FLATS){const d=Math.hypot(x-f.x,z-f.z);if(d<f.r1)h=lerp(f.h,h,smooth(f.r0,f.r1,d));}return h;}
 function slopeAt(x,z){return Math.hypot(islandH(x+1,z)-islandH(x-1,z),islandH(x,z+1)-islandH(x,z-1))/2;}
 function coastZ(x){for(let z=-90;z>-240;z-=.25){if(islandH(x,z)<0)return z;}return -175;}
@@ -548,18 +549,21 @@ function geoTent(collapsed){const P=[];const th=0x7f8a3c,th2=0x8f7a3e;
   P.push(part(GB.cyl,0x6e5232,0,1.38,0,Math.PI/2,0,0,.05,2.9,.05));for(const z of[-1.25,1.25])P.push(part(GB.cyl,0x6e5232,0,.7,z,0,0,0,.05,1.4,.05));
   P.push(part(GB.box,0x1a1408,0,.55,1.28,0,0,0,.7,1,.02));for(let k=0;k<6;k++)P.push(part(GB.leaf,jc(0x6f8f3a),(k%2?.5:-.5),1.1+(k%3)*.08,-1+k*.4,0,k,k%2?.7:-.7,.5,1,1.1));
   return merge(P);}
-function makeShip(wrecked){const P=[];const hull=0x5a3e26,dark=0x3e2a1a,deck=0x8a6a44,sail=0xd8cfb4,rope=0x9a8a6a;
-  P.push(part(GB.box,hull,0,1.9,0,0,0,0,6.2,3.6,22));P.push(part(GB.box,dark,0,.5,0,0,0,0,5,1.2,20));
-  P.push(part(GB.box,hull,-1.55,1.9,12.1,0,.42,0,3.4,3.4,5));P.push(part(GB.box,hull,1.55,1.9,12.1,0,-.42,0,3.4,3.4,5));
-  P.push(part(GB.box,deck,0,3.75,0,0,0,0,5.8,.15,22));P.push(part(GB.box,hull,0,4.8,-9.2,0,0,0,6.2,2.2,4.2));P.push(part(GB.box,deck,0,5.95,-9.2,0,0,0,6.3,.15,4.4));
-  P.push(part(GB.cyl,dark,0,4.8,15.5,1.25,0,0,.18,7,.18));
-  for(const s of[-1,1])P.push(part(GB.box,dark,s*3.12,4.1,0,0,0,0,.15,.7,22));
-  const masts=wrecked?[[5,6,0,.0],[-3,13,.35,.6]]:[[5,16,0,0],[-3,18,0,0]];
-  masts.forEach(([z,h,tilt,rz])=>{P.push(part(GB.cyl,dark,Math.sin(rz)*h/2*(tilt?1:0),3.8+h/2*Math.cos(tilt),z,tilt,0,rz,.22,h,.22));
-    if(!wrecked||z<0){P.push(part(GB.cyl,dark,0,3.8+h*.75,z,0,0,Math.PI/2,.1,8,.1));P.push(part(GB.box,sail,0,3.8+h*.52,z+.15,0,0,0,7.4,h*.42,.06));}
-    if(!wrecked)P.push(part(GB.box,sail,0,3.8+h*.86,z+.15,0,0,0,5,h*.2,.06));});
-  if(wrecked){P.push(part(GB.box,0x080605,2.9,1.7,3,0,0,0,.6,2.6,5));for(let k=0;k<6;k++)P.push(part(GB.box,jc(hull),3.4+k*.3,.3+k*.2,1+k*.9,k,k*.7,k*.4,.2,.18,2.4));P.push(part(GB.box,sail,1.4,4.2,8,0,.4,.9,4.5,.05,2.6));}
-  for(let k=0;k<4;k++)P.push(part(GB.cyl,rope,(k%2?1:-1)*2.6,8.5,5+(k>1?-8:0),.0,0,(k%2?-1:1)*.32,.02,10,.02));
+/* a 1950 navy troop transport: grey steel hull, aft bridge and funnel, a bow gun. Wrecked, it is torn open and rusting on the reef */
+function makeShip(wrecked){const P=[];const grey=wrecked?0x5e5852:0x5c6268,dk=wrecked?0x3e3630:0x3e4448,deck=wrecked?0x4a4038:0x4a4e4c,red=wrecked?0x5a2e22:0x7a2a22,rust=0x7a4a2a;const C=c=>wrecked&&Math.random()<.35?jc(rust,.15):jc(c,.04);
+  P.push(part(GB.box,C(grey),0,2.4,0,0,0,0,6.2,2.6,22));P.push(part(GB.box,red,0,.7,0,0,0,0,5.6,1.1,21));
+  P.push(part(GB.box,C(grey),-1.55,2.2,12.1,0,.42,0,3.4,3.2,5));P.push(part(GB.box,C(grey),1.55,2.2,12.1,0,-.42,0,3.4,3.2,5));P.push(part(GB.box,red,0,.8,11.5,0,0,0,3.6,1,4));
+  P.push(part(GB.box,deck,0,3.75,0,0,0,0,5.8,.15,22));P.push(part(GB.box,C(grey),0,3.1,-11.4,0,0,0,6.2,1.8,1.4));
+  P.push(part(GB.box,C(grey),0,4.8,-9.2,0,0,0,6.2,2.2,4.2));P.push(part(GB.box,deck,0,5.95,-9.2,0,0,0,6.3,.15,4.4));
+  P.push(part(GB.box,C(grey),0,6.9,-8.6,0,0,0,4,1.8,2.6));P.push(part(GB.box,0x1a1e22,0,7.2,-7.28,0,0,0,3.6,.45,.05));P.push(part(GB.box,deck,0,7.85,-8.6,0,0,0,4.2,.12,2.8));
+  P.push(part(GB.cyl,C(dk),0,8.6,-10.6,wrecked?.25:-.08,0,0,.8,3,.8));P.push(part(GB.cyl,0x1a1a1a,0,10.15,-10.6,0,0,0,.7,.1,.7));
+  const mt=wrecked?.5:0;P.push(part(GB.cyl,dk,Math.sin(mt)*3,8+5*Math.cos(mt),-6.6,0,0,mt,.12,10,.12));P.push(part(GB.box,dk,Math.sin(mt)*7,8+9*Math.cos(mt),-6.6,0,0,mt,2.4,.1,.1));
+  if(!wrecked){P.push(part(GB.box,0x2a2e30,0,11.2,-6.6,0,0,0,1.6,.12,.3));}
+  P.push(part(GB.cyl,dk,0,4.1,11.5,0,0,0,.7,.5,.7));P.push(part(GB.box,dk,0,4.5,12.6,wrecked?.3:-.05,0,0,.12,.12,2));
+  for(const sd of[-1,1]){for(let k=-9;k<=9;k+=1.5)P.push(part(GB.box,0x9a9e9a,sd*2.95,4.25,k,0,0,0,.04,.8,.04));P.push(part(GB.box,0x9a9e9a,sd*2.95,4.62,0,0,0,0,.05,.05,20));
+    P.push(part(GB.box,0xd8d4c8,sd*3.6,5.4,-5,0,0,0,.9,.7,3.4));P.push(part(GB.box,dk,sd*3.25,5.6,-6.2,0,0,0,.6,.1,.1));P.push(part(GB.box,dk,sd*3.25,5.6,-3.8,0,0,0,.6,.1,.1));}
+  if(wrecked){P.push(part(GB.box,0x080605,3.1,2,3,0,0,0,.4,2.4,5.2));for(let k=0;k<7;k++)P.push(part(GB.box,jc(rust,.15),3.4+k*.25,.4+k*.3,.6+k*.8,k,k*.7,k*.4,.12,.4,1.8));
+    P.push(part(GB.box,deck,1.2,4.1,4,0,.2,.5,2.6,.12,3));}
   const g=new THREE.Group();g.add(new THREE.Mesh(merge(P),JMAT));return g;}
 function makeStair(){const g=new THREE.Group();const P=[];const st=0x6f7362,st2=0x5d6152,moss=0x4f6e36;
   for(const s of[-1,1])P.push(part(GB.box,jc(st),s*1.95,.25,-2.6,0,0,0,.9,.55,7.4));P.push(part(GB.box,jc(st2),0,.25,.95,0,0,0,4.8,.55,.9));P.push(part(GB.box,jc(st2),0,.25,-6.15,0,0,0,4.8,.55,.9));
@@ -572,14 +576,62 @@ function makeStair(){const g=new THREE.Group();const P=[];const st=0x6f7362,st2=
   const cover=new THREE.Mesh(merge(C),JMAT);g.add(cover);g.userData.cover=cover;return g;}
 function makeMarker(r){const P=[];const st=0x6c6a5a;P.push(part(GB.box,jc(st),0,.7,0,0,r()*.3,(r()-.5)*.15,.6,1.4,.5));P.push(part(GB.box,0x2e2e26,0,1.05,.26,0,0,0,.36,.06,.02));P.push(part(GB.box,0x2e2e26,-.1,.85,.26,0,0,0,.08,.16,.02));P.push(part(GB.box,0x2e2e26,.1,.85,.26,0,0,0,.08,.16,.02));P.push(part(GB.box,0x2e2e26,0,.6,.26,0,0,0,.2,.05,.02));
   P.push(part(GB.box,jc(0x4f6e36),0,1.42,0,0,0,0,.66,.08,.56));for(let k=0;k<3;k++)P.push(part(GB.box,0x35602a,(k-1)*.22,.9,.27,0,0,0,.05,.9,.05));return merge(P);}
-function makeOutpost(){const P=[];const sb=0x9a8a62,con=0x6a6e5a,wd=0x6e5232;
-  for(let k=0;k<26;k++){const a=k/26*6.283;if(Math.abs(angDiff(a,Math.PI/2))<.3)continue;for(let l=0;l<2;l++)P.push(part(GB.box,jc(sb,.1),Math.cos(a)*9,.25+l*.45,Math.sin(a)*9,0,-a,0,.9,.42,2.3));}
-  P.push(part(GB.box,con,-2,1.2,-3,0,.2,0,6,2.4,4.6));P.push(part(GB.box,0x101010,-2,1.6,-.6,0,.2,0,3,.3,.1));P.push(part(GB.box,jc(con),-2,2.5,-3,0,.2,0,6.4,.3,5));
-  for(const[x,z]of[[3,-3],[5,-3],[3,-5],[5,-5]])P.push(part(GB.cyl,wd,x,2.5,z,0,0,0,.12,5,.12));P.push(part(GB.box,wd,4,5,-4,0,0,0,2.6,.15,2.6));for(const s of[-1,1])P.push(part(GB.box,wd,4+s*1.25,5.45,-4,0,0,0,.08,.8,2.6));
-  P.push(part(GB.cyl,wd,-5,3,3,0,0,0,.06,6,.06));P.push(part(GB.box,0xb8ad8e,-4.4,5.4,3,0,0,.1,1.2,.7,.03));
-  for(let k=0;k<4;k++)P.push(part(GB.box,0x5e4a2a,2+k*1.1,.4,3+(k%2)*.9,0,k*.4,0,.8,.8,.8));
+/* a 1944 Imperial Japanese Army jungle outpost, still manned: sandbag ring and wire, a log-roofed bunker with a machine gun,
+   a watchtower, a thatched barracks hut, the Hinomaru on its pole and a rusting Type 95 Ha-Go light tank */
+function makeOutpost(){const P=[];const sb=0x9a8a62,log=0x5e4630,wd=0x6e5232,olive=0x5a5a3a,rustC=0x6a4a30,dark=0x141210;
+  for(let k=0;k<30;k++){const a=k/30*6.283;if(Math.abs(angDiff(a,Math.PI/2))<.28)continue;for(let l=0;l<3;l++)P.push(part(GB.box,jc(sb,.1),Math.cos(a)*9,.22+l*.38,Math.sin(a)*9,0,-a+(l%2)*.05,0,.85,.36,2.0));}
+  for(let k=0;k<22;k++){const a=k/22*6.283;if(Math.abs(angDiff(a,Math.PI/2))<.25)continue;const x=Math.cos(a)*11.5,z=Math.sin(a)*11.5;P.push(part(GB.box,log,x,.6,z,0,0,0,.1,1.2,.1));const a2=(k+1)/22*6.283;if(Math.abs(angDiff(a2,Math.PI/2))<.25)continue;
+    const x2=Math.cos(a2)*11.5,z2=Math.sin(a2)*11.5,mx=(x+x2)/2,mz=(z+z2)/2,L=Math.hypot(x2-x,z2-z),ry=Math.atan2(x2-x,z2-z);for(const y of[.35,.7,1.05])P.push(part(GB.box,0x3a3a36,mx,y,mz,(y*7)%1*.2-.1,ry,0,.02,.02,L));
+    for(let n=0;n<4;n++)P.push(part(GB.box,0x3a3a36,lerp(x,x2,n/4),.7,lerp(z,z2,n/4),.7,ry,.7,.02,.4,.02));}
+  /* bunker */
+  P.push(part(GB.box,0x6a6252,-2,1,-3,0,.2,0,6,2,4.6));for(let k=0;k<9;k++)P.push(part(GB.cyl,jc(log,.08),-2+Math.cos(.2)*0+(k-4)*.66*Math.cos(.2),2.15,-3-(k-4)*.66*Math.sin(.2),Math.PI/2,.2,0,.26,4.9,.26));
+  P.push(part(GB.box,0x4a5a2a,-2,2.5,-3,0,.2,0,6.2,.25,5));P.push(part(GB.box,dark,-2.4,1.45,-.66,0,.2,0,3,.32,.1));
+  P.push(part(GB.box,0x2a2a2a,-2.4,1.5,-.3,0,.2,0,.1,.1,1.1));P.push(part(GB.box,0x2a2a2a,-2.4,1.5,-.1,0,.2,0,.14,.18,.4));for(const s of[-1,1])P.push(part(GB.box,0x2a2a2a,-2.4+s*.25,1.2,-.4,.4,.2,s*.4,.04,.6,.04));
+  for(let k=0;k<10;k++)P.push(part(GB.box,jc(sb,.1),-4.9+k*.6,.2,-.4,0,.2,0,.55,.35,.5));
+  /* watchtower */
+  for(const[x,z]of[[3,-3],[5.2,-3],[3,-5.2],[5.2,-5.2]])P.push(part(GB.cyl,wd,x,3,z,0,0,0,.13,6,.13));
+  for(const y of[1.6,3.4])for(const[x,z,ry]of[[4.1,-3,Math.PI/2],[4.1,-5.2,Math.PI/2],[3,-4.1,0],[5.2,-4.1,0]])P.push(part(GB.box,wd,x,y,z,.6,ry,0,.07,.07,3));
+  P.push(part(GB.box,wd,4.1,6,-4.1,0,0,0,2.8,.15,2.8));for(const s of[-1,1]){P.push(part(GB.box,wd,4.1+s*1.35,6.45,-4.1,0,0,0,.08,.8,2.8));P.push(part(GB.box,wd,4.1,6.45,-4.1+s*1.35,0,0,0,2.8,.8,.08));}
+  for(const[x,z]of[[2.8,-2.8],[5.4,-2.8],[2.8,-5.4],[5.4,-5.4]])P.push(part(GB.box,wd,x,7.2,z,0,0,0,.08,1.6,.08));P.push(part(GB.cone,0x8a7a4a,4.1,8.4,-4.1,0,Math.PI/4,0,2.4,1.2,2.4));
+  for(let k=0;k<12;k++)P.push(part(GB.box,wd,3,.3+k*.5,-1.9,0,0,0,.6,.05,.08));for(const s of[-1,1])P.push(part(GB.box,wd,3+s*.3,3,-1.9,0,0,0,.06,6,.06));
+  /* barracks hut */
+  P.push(part(GB.box,0x7a6a4a,-4.5,.5,4.4,0,-.15,0,5,.2,3.4));for(const[x,z]of[[-6.8,3],[-2.2,3],[-6.8,5.8],[-2.2,5.8]])P.push(part(GB.cyl,wd,x,1.1,z,0,0,0,.1,2.2,.1));
+  P.push(part(GB.box,0x8a7a50,-4.5,1.25,4.4,0,-.15,0,4.6,1.5,.1));P.push(part(GB.box,0x8a7a50,-4.5,1.25,5.85,0,-.15,0,4.6,1.5,.1));
+  for(const s of[-1,1])P.push(part(GB.box,0xb09a5a,-4.5,2.75,4.4+s*1,s*.6,-.15,0,5.6,.14,2.4));
+  /* flag pole with the Hinomaru */
+  P.push(part(GB.cyl,0x8a8a80,-6,3.5,-1,0,0,0,.06,7,.06));P.push(part(GB.ico,0xd8b040,-6,7.05,-1,0,0,0,.1,.1,.1));
+  P.push(part(GB.box,0xf0ece0,-5.25,6.3,-1,0,0,.04,1.5,1,.03));for(const s of[-1,1])P.push(part(GB.cyl,0xc0182a,-5.2,6.3,-1+s*.02,Math.PI/2,0,0,.3,.01,.3));
+  /* Type 95 Ha-Go, abandoned and rusting */
+  {const tx=6,tz=4.5,ry=-.5;const at=(x,y,z)=>[tx+x*Math.cos(ry)+z*Math.sin(ry),y,tz-x*Math.sin(ry)+z*Math.cos(ry)];
+    const T=(x,y,z,sx,sy,sz,c,rz=0)=>{const[a,b,cc]=at(x,y,z);P.push(part(GB.box,jc(c,.06),a,b,cc,0,ry,rz,sx,sy,sz));};
+    T(0,.95,0,1.8,.8,3.9,olive);T(0,1.45,-.4,1.6,.3,2.2,olive);T(0,.55,1.9,1.6,.6,.4,rustC);
+    for(const s of[-1,1]){T(s*1.05,.5,0,.4,.6,4.3,0x2e2a26);for(let k=0;k<4;k++){const[a,b,c]=at(s*1.05,.35,-1.4+k*.95);P.push(part(GB.cyl,0x3a3632,a,b,c,0,ry,Math.PI/2,.32,.42,.32));}}
+    const[a,b,c]=at(-.3,1.85,-.3);P.push(part(GB.cyl,olive,a,b,c,0,ry,0,.62,.6,.62));const[g1,g2,g3]=at(-.3,1.9,.7);P.push(part(GB.box,0x2a2a2a,g1,g2,g3,0,ry,0,.08,.08,1.1));
+    T(.1,1.25,1.2,1.2,.04,.6,0x8a3a1a);for(let k=0;k<6;k++)T(rand(-.8,.8),1.6+rand(0,.4),rand(-1.6,1.6),.05,.05,rand(.6,1.4),0x3a6a28,rand(-.5,.5));}
+  /* stores: crates, oil drums, a field kitchen pot */
+  for(let k=0;k<5;k++)P.push(part(GB.box,jc(0x5e4a2a),1+k*1.1,.4+(k===4?.8:0),2.2+(k%2)*.9-(k===4?.45:0),0,k*.2,0,.8,.8,.8));
+  for(let k=0;k<4;k++)P.push(part(GB.cyl,jc(0x4a5a3a,.1),-1+k*.75,.5,6.8-(k%2)*.6,0,0,0,.32,1,.32));
+  P.push(part(GB.cyl,0x2a2a28,2.6,.45,6,0,0,0,.5,.6,.5));for(const[x,z]of[[2.1,5.6],[3.1,5.6],[2.6,6.5]])P.push(part(GB.box,0x3a3a36,x,.2,z,0,0,0,.25,.4,.25));
+  P.push(part(GB.cyl,0x7a7a70,-1,4.5,-5.5,0,0,0,.03,9,.03));
   return merge(P);}
 
+
+/* the hill: a tall carved obelisk that wakes when someone comes to mine there, and the cave King Bigfoot sleeps in */
+const OBG=shared(new THREE.CylinderGeometry(.62,.92,1,4)),PYR=shared(new THREE.CylinderGeometry(0,1,1,4));
+function makeObelisk(){const g=new THREE.Group();const P=[];const st=0x6e6a5c;
+  P.push(part(GB.box,0x5e5a4e,0,.3,0,0,0,0,3.4,.6,3.4));P.push(part(GB.box,0x66625a,0,.8,0,0,0,0,2.6,.5,2.6));
+  P.push(part(OBG,jc(st,.04),0,1.05+4.5,0,0,Math.PI/4,0,1.8,9,1.8));P.push(part(PYR,0x77735f,0,10.6,0,0,Math.PI/4,0,1.12,1.1,1.12));
+  for(let k=0;k<8;k++)P.push(part(GB.box,0x4a6a2a,rand(-1.2,1.2),.62+rand(0,1.5),rand(-1.2,1.2),0,rand(0,3),0,.06,rand(.4,1.4),.06));
+  g.add(new THREE.Mesh(merge(P),JMAT));
+  const GP=[];for(let f=0;f<4;f++){const a=f*Math.PI/2;for(let k=0;k<9;k++){const y=1.6+k*.9;const rad=lerp(.92,.62,(y-1.05)/9)*1.8*.707+.03;const w=k%3===1?.5:.28;GP.push(part(GB.box,0xffffff,Math.sin(a)*rad,y,Math.cos(a)*rad,0,a,0,w,.16+(k%2)*.14,.05));if(k%2)GP.push(part(GB.box,0xffffff,Math.sin(a)*rad+Math.cos(a)*.22,y+.25,Math.cos(a)*rad-Math.sin(a)*.22,0,a,0,.08,.3,.05));}}
+  const gm=new THREE.MeshStandardMaterial({color:0x24302c,emissive:0x6ff0dc,emissiveIntensity:0,roughness:.6});const glyphs=new THREE.Mesh(merge(GP),gm);g.add(glyphs);
+  const light=new THREE.PointLight(0x6ff0dc,0,26,1.6);light.position.set(0,6,0);g.add(light);
+  g.glow=k=>{gm.emissiveIntensity=k*1.8;light.intensity=k*2.4;g.lit=k>=1;};return g;}
+function makeHillCave(){const g=new THREE.Group();const P=[];const rc=0x5d5950;
+  for(const[x,y,z,sx,sy,sz]of[[-4.6,3,0,3.2,4.2,3.4],[4.6,3,0,3.2,4.4,3.4],[0,7.6,-.4,6.4,2.2,3.6],[-6.5,2,-3,3.6,3.4,4],[6.5,2.2,-3,3.6,3.6,4],[0,5.4,-5,7.5,5,4.5],[-2.8,8.6,-3,3,2.4,3],[3,8.4,-3.2,3.2,2.6,3]])P.push(part(GB.dod,jc(rc,.1),x,y,z,rand(0,3),rand(0,3),0,sx,sy,sz));
+  for(let k=0;k<10;k++)P.push(part(GB.box,0x3a6a28,rand(-6,6),rand(5,9.5),rand(-2,1),0,0,0,.07,rand(1,3),.07));
+  g.add(new THREE.Mesh(merge(P),JMAT));
+  const dark=new THREE.Mesh(new THREE.BoxGeometry(5.2,6.6,4),new THREE.MeshBasicMaterial({color:0x050504}));dark.position.set(0,3.2,-1.6);g.add(dark);return g;}
 /* ---------- island props ---------- */
 function makeBoar(){const g=new THREE.Group();const fur=0x5e4030;
   g.add(new THREE.Mesh(merge([part(GB.box,fur,0,.62,0,0,0,0,.7,.6,1.2),part(GB.box,fur,0,.72,.78,0,0,0,.5,.46,.5),part(GB.box,0xc08a7a,0,.62,1.08,0,0,0,.26,.2,.14),part(GB.box,0xeae0c8,-.14,.55,1.05,0,0,0,.05,.05,.16),part(GB.box,0xeae0c8,.14,.55,1.05,0,0,0,.05,.05,.16),part(GB.box,fur,-.16,1,.62,0,0,0,.12,.14,.06),part(GB.box,fur,.16,1,.62,0,0,0,.12,.14,.06),part(GB.box,0x3a2a20,0,.98,0,0,0,0,.12,.1,1)]),JMAT));
@@ -610,12 +662,12 @@ function refreshCamp(){if(!ISL)return;ISL.tents.forEach(t=>{world.remove(t);t.ge
   if(G.campBuilt){const broken=G.campHP<=0;campSpots().forEach(sp=>{const m=new THREE.Mesh(geoTent(broken),JMAT);m.position.set(sp.x,islandH(sp.x,sp.z),sp.z);m.rotation.y=sp.ry;world.add(m);ISL.tents.push(m);if(!broken)addCollider({x:sp.x,z:sp.z,r:1.3,ref:'tent'});});}
   ISL.site.visible=!G.campBuilt;
   if(ISL.fire){ISL.fire.g.visible=G.fireLit;ISL.fire.flame.visible=G.fireLit;ISL.fire.light.intensity=G.fireLit?1.8:0;}
-  if(ISL.boat)ISL.boat.visible=G.boatBuilt;}
+  if(ISL.boat)ISL.boat.visible=G.boatBuilt;if(ISL.dock){ISL.dock.visible=G.dockBuilt;ISL.dockSite.visible=!G.dockBuilt;}}
 function buildIsland(menu){
   clearWorld();ISL={gather:[],bushes:[],markers:[],tents:[],crates:[],menu};const r=rng(777);
   world.add(terrainMesh(menu?150:200));
   const water=new THREE.Mesh(new THREE.PlaneGeometry(2400,2400),M(0x1d6f85,{transparent:true,opacity:.86,roughness:.25,metalness:.1,flatShading:false}));water.rotation.x=-Math.PI/2;world.add(water);ISL.water=water;
-  const keep=[{x:CAMP.x,z:CAMP.z,r:16},{x:STAIR.x,z:STAIR.z-2.6,r:6},{x:STAIR.x,z:STAIR.z+6,r:5.5},{x:OUTPOST.x,z:OUTPOST.z,r:13},{x:DOCK.x,z:DOCK.z,r:8},{x:ARCH.x,z:ARCH.z,r:9},{x:SWAMP.x,z:SWAMP.z,r:12},{x:LAIR.x,z:LAIR.z,r:12},...MARKERS.map(m=>({x:m.x,z:m.z,r:2}))];
+  const keep=[{x:CAMP.x,z:CAMP.z,r:16},{x:STAIR.x,z:STAIR.z-2.6,r:6},{x:STAIR.x,z:STAIR.z+6,r:5.5},{x:OUTPOST.x,z:OUTPOST.z,r:13},{x:DOCK.x,z:DOCK.z,r:8},{x:ARCH.x,z:ARCH.z,r:9},{x:SWAMP.x,z:SWAMP.z,r:12},{x:LAIR.x,z:LAIR.z,r:12},{x:HILL_CAVE.x,z:HILL_CAVE.z,r:10},...MARKERS.map(m=>({x:m.x,z:m.z,r:2}))];
   const away=(x,z)=>keep.every(k=>Math.hypot(x-k.x,z-k.z)>k.r);
   const RAD=ISL_R*1.03;
   const land=(minH,maxS,rad=RAD)=>{const a=r()*6.283,d=Math.sqrt(r())*rad;const x=Math.cos(a)*d,z=Math.sin(a)*d;const h=islandH(x,z);if(h<minH||slopeAt(x,z)>maxS||!away(x,z))return null;return{x,z,h};};
@@ -626,18 +678,23 @@ function buildIsland(menu){
   for(let n=0,t=0;n<(menu?520:640)&&t<26000;t++){const p=land(1.2,.75);if(!p)continue;let kind;if(p.h<2.6)kind=r()<.8?'palm':'jtree';else if(p.h>16)kind=r()<.3?'kapok':'jtree';else kind=r()<.5?'kapok':'jtree';if(!spaced(p.x,p.z,kind==='kapok'?4.4:3))continue;add(kind,p.x,p.z);n++;}
   plantForest(list);trees=list;list.forEach(t=>addCollider({x:t.x,z:t.z,r:t.r,ref:t}));
   const rockMat=shared(M(0x84827a));
-  for(let n=0,t=0;n<46&&t<6000;t++){const p=land(1.4,.7);if(!p||!spaced(p.x,p.z,2.6)||rocks.some(o=>Math.hypot(o.x-p.x,o.z-p.z)<7))continue;
+  for(let n=0,t=0;n<26&&t<6000;t++){const p=land(1.4,.7);if(!p||!spaced(p.x,p.z,2.6)||rocks.some(o=>Math.hypot(o.x-p.x,o.z-p.z)<7))continue;
     const sx=1.1+r()*.6;const g=new THREE.Mesh(GB.dod,rockMat);g.scale.set(sx,.7+r()*.4,1.1+r()*.5);g.rotation.y=r()*6;g.position.set(p.x,p.h-.25,p.z);world.add(g);
     const o={g,x:p.x,z:p.z,r:1.05*sx,hp:5};rocks.push(o);addCollider({x:p.x,z:p.z,r:o.r,ref:o});n++;}
+  /* the hill: a tall obelisk among the best stone on the island, and a cave in the rock behind it */
+  {const hx=HILL.x,hz=HILL.z,hh=islandH(hx,hz);const ob=makeObelisk();ob.position.set(hx,hh-.25,hz);world.add(ob);ISL.obelisk=ob;addCollider({x:hx,z:hz,r:1.9,ref:'obelisk'});
+    const cv=makeHillCave();cv.position.set(HILL_CAVE.x,islandH(HILL_CAVE.x,HILL_CAVE.z)-.4,HILL_CAVE.z);world.add(cv);for(const[dx,dz,rr]of[[-4.8,0,2.6],[4.8,0,2.6],[0,-4,4],[-6.5,-3,3],[6.5,-3,3]])addCollider({x:HILL_CAVE.x+dx,z:HILL_CAVE.z+dz,r:rr,ref:'cave'});
+    for(let n=0,t=0;n<18&&t<600;t++){const a=r()*6.283,d=4.5+r()*13;const x=hx+Math.cos(a)*d,z=hz+Math.sin(a)*d;if(z<HILL_CAVE.z+5&&Math.abs(x-hx)<9)continue;const h=islandH(x,z);if(h<1.4||slopeAt(x,z)>1||rocks.some(o=>Math.hypot(o.x-x,o.z-z)<3.4))continue;
+      const sx=1+r()*.7;const g=new THREE.Mesh(GB.dod,rockMat);g.scale.set(sx,.7+r()*.5,1+r()*.6);g.rotation.y=r()*6;g.position.set(x,h-.25,z);world.add(g);const o={g,x,z,r:1.05*sx,hp:5};rocks.push(o);addCollider({x,z,r:o.r,ref:o});n++;}}
   const bushPts=[];for(let t=0;t<6000&&bushPts.length<40;t++){const p=land(1.8,.7);if(p&&spaced(p.x,p.z,2)&&!bushPts.some(b=>Math.hypot(b.x-p.x,b.z-p.z)<8))bushPts.push(p);}
   const bodyIM=new THREE.InstancedMesh(geoShrub(),JMAT,bushPts.length);bodyIM.frustumCulled=false;
   const berryIM=new THREE.InstancedMesh(GB.ico,shared(M(0xc8243a,{emissive:0x400010})),bushPts.length*8);berryIM.frustumCulled=false;
   bushPts.forEach((p,i)=>{_m4.makeTranslation(p.x,p.h-.05,p.z);bodyIM.setMatrixAt(i,_m4);const pts=[];for(let k=0;k<8;k++){const a=r()*6.28,el=.2+r()*1;pts.push(new V3(p.x+Math.cos(a)*Math.cos(el)*1.05,p.h+.45+Math.sin(el)*.6,p.z+Math.sin(a)*Math.cos(el)*1.05));}const b={x:p.x,z:p.z,has:true,t:0,i,pts};ISL.bushes.push(b);setBerries(b,true,berryIM);});
   bodyIM.instanceMatrix.needsUpdate=true;world.add(bodyIM,berryIM);ISL.berryIM=berryIM;
   const gatherSet=(type,geo,count,minH,maxH,near)=>{const im=new THREE.InstancedMesh(geo,JMAT,count);im.frustumCulled=false;let n=0;
-    for(let t=0;t<count*60&&n<count;t++){const p=near&&n<near.n?(()=>{const a=r()*6.283,d=4+r()*near.r;const x=CAMP.x+Math.cos(a)*d,z=CAMP.z+Math.sin(a)*d;const h=islandH(x,z);return h>minH&&h<maxH&&away(x,z)?{x,z,h}:null;})():land(minH,.7);if(!p||p.h>maxH)continue;
+    for(let t=0;t<count*60&&n<count;t++){const p=near&&near.fn?near.fn():near&&n<near.n?(()=>{const a=r()*6.283,d=4+r()*near.r;const x=CAMP.x+Math.cos(a)*d,z=CAMP.z+Math.sin(a)*d;const h=islandH(x,z);return h>minH&&h<maxH&&away(x,z)?{x,z,h}:null;})():land(minH,.7);if(!p||p.h>maxH)continue;
       const it={type,x:p.x,z:p.z,y:p.h,ry:r()*6.28,idx:n,has:true,t:0,im};setInst(it,1);ISL.gather.push(it);n++;}im.count=n;world.add(im);};
-  gatherSet('stick',geoSticks(),90,1,99,{n:10,r:30});gatherSet('stone',geoStones(),80,1,99,{n:8,r:30});gatherSet('fiber',geoFiber(),80,1.4,99,{n:8,r:34});gatherSet('leaf',geoLeaves(),46,.6,3.2,{n:10,r:40});
+  gatherSet('stick',geoSticks(),90,1,99,{n:10,r:30});gatherSet('stone',geoStones(),80,1,99,{n:8,r:30});gatherSet('fiber',geoFiber(),30,1.4,99,{n:6,r:34});gatherSet('fiber',geoFiber(),42,-.45,99,{fn:()=>{const a=r()*6.283,d=5+r()*24;const x=SWAMP.x+Math.cos(a)*d,z=SWAMP.z+Math.sin(a)*d;const h=islandH(x,z);return h>-.45&&h<2.4?{x,z,h}:null;}});gatherSet('leaf',geoLeaves(),46,.6,3.2,{n:10,r:40});
   const floorPt=(minH,s0,s1)=>()=>{const a=r()*6.283,d=Math.sqrt(r())*RAD;const x=Math.cos(a)*d,z=Math.sin(a)*d;const h=islandH(x,z);if(h<minH||slopeAt(x,z)>.9)return null;if(Math.hypot(x-CAMP.x,z-CAMP.z)<9||Math.hypot(x-OUTPOST.x,z-OUTPOST.z)<10)return null;if(s0>.75&&(Math.hypot(x-STAIR.x,z-STAIR.z+2.6)<4.5||(Math.abs(x-STAIR.x)<7.5&&z>STAIR.z-1&&z<STAIR.z+14)))return null;return{x,y:h-.05,z,ry:r()*6.28,s:s0+r()*(s1-s0)};};
   const k=menu?.7:1;
   scatter(geoFern(),Math.round(1400*k),floorPt(2,.7,1.5),JMAT_DS);scatter(geoBigLeaf(),Math.round(480*k),floorPt(2.4,.8,1.5),JMAT_DS);scatter(geoShrub(),Math.round(460*k),floorPt(1.8,.7,1.6));
@@ -652,14 +709,15 @@ function buildIsland(menu){
   ISL.door={x:STAIR.x,z:STAIR.z+2.2};
   MARKERS.forEach(m=>{const g=new THREE.Mesh(makeMarker(r),JMAT);g.position.set(m.x,islandH(m.x,m.z)-.1,m.z);g.rotation.y=r()*6;world.add(g);addCollider({x:m.x,z:m.z,r:.5,ref:'marker'});});
   const op=new THREE.Mesh(makeOutpost(),JMAT);op.position.set(OUTPOST.x,islandH(OUTPOST.x,OUTPOST.z)-.05,OUTPOST.z);world.add(op);
-  addCollider({x:OUTPOST.x-2,z:OUTPOST.z-3,r:3.3,ref:'outpost'});addCollider({x:OUTPOST.x+4,z:OUTPOST.z-4,r:1.7,ref:'outpost'});
+  addCollider({x:OUTPOST.x-2,z:OUTPOST.z-3,r:3.3,ref:'outpost'});addCollider({x:OUTPOST.x+4,z:OUTPOST.z-4,r:1.7,ref:'outpost'});addCollider({x:OUTPOST.x-4.5,z:OUTPOST.z+4.4,r:2.6,ref:'outpost'});addCollider({x:OUTPOST.x+6,z:OUTPOST.z+4.5,r:2.3,ref:'outpost'});addCollider({x:OUTPOST.x-6,z:OUTPOST.z-1,r:.4,ref:'outpost'});
   /* camp site: a cleared patch with a stake until the camp is built */
   const S0=[];for(let k=0;k<5;k++)S0.push(part(GB.cyl,jc(0x6e5232),(k-2)*.5,.15,.6,0,k*.6,Math.PI/2,.09,1.6,.09));S0.push(part(GB.cyl,0x8a6a40,0,.6,-1,0,0,0,.06,1.2,.06));S0.push(part(GB.box,0xd8cfb4,.25,1.05,-1,0,0,.2,.5,.3,.03));
   const site=new THREE.Mesh(merge(S0),JMAT);site.position.set(CAMP.x+2,CAMP.h,CAMP.z+2);world.add(site);ISL.site=site;
   const fire=makeCampfire();fire.g.position.set(CAMP.x,islandH(CAMP.x,CAMP.z),CAMP.z);world.add(fire.g);ISL.fire={...fire,x:CAMP.x,z:CAMP.z};addCollider({x:CAMP.x,z:CAMP.z,r:.85,ref:'fire'});
   /* boat landing */
   const D=[];for(let k=0;k<6;k++)D.push(part(GB.box,jc(0x7a5634),0,.18,k*1.1,0,0,0,2.2,.12,.9));for(const s of[-1,1])for(let k=0;k<3;k++)D.push(part(GB.cyl,0x5a3e24,s*1.05,.1,k*2.4,0,0,0,.1,1.4,.1));
-  const dock=new THREE.Mesh(merge(D),JMAT);dock.position.set(DOCK.x,Math.max(.1,islandH(DOCK.x,DOCK.z)),DOCK.z);world.add(dock);
+  const dock=new THREE.Mesh(merge(D),JMAT);dock.position.set(DOCK.x,Math.max(.1,islandH(DOCK.x,DOCK.z)),DOCK.z);world.add(dock);ISL.dock=dock;
+  const L0=[];for(let k=0;k<4;k++)L0.push(part(GB.cyl,0x6e5232,(k%2?1:-1)*1.05,.4,k<2?0:5,0,0,0,.08,.9,.08));L0.push(part(GB.box,0xd8cfb4,1.05,.75,0,0,0,.2,.4,.25,.03));const lsite=new THREE.Mesh(merge(L0),JMAT);lsite.position.copy(dock.position);world.add(lsite);ISL.dockSite=lsite;
   const boat=makeBoat();boat.position.set(DOCK.bx,.05,DOCK.bz);boat.rotation.y=0;world.add(boat);ISL.boat=boat;
   /* the wreck on the reef, with crates to salvage */
   const wr=makeShip(true);wr.position.set(WRECK.x,-1.7,WRECK.z);wr.rotation.set(.08,.55,.32);world.add(wr);ISL.wreck=wr;
@@ -741,13 +799,18 @@ function blockedAt(x,z,r){return isWall(x-r,z-r)||isWall(x+r,z-r)||isWall(x-r,z+
 function los(x0,z0,x1,z1){const dx=x1-x0,dz=z1-z0,d=Math.hypot(dx,dz);const n=Math.ceil(d/.7);for(let i=1;i<n;i++){if(isWall(x0+dx*i/n,z0+dz*i/n)&&cellVal(x0+dx*i/n,z0+dz*i/n)!==6)return false;}return true;}
 function cellCenter(i,j){return{x:i*S+S/2,z:j*S+S/2};}
 
-function buildGrid(th){const{grid:g,W,H}=LV;const tx=themeTex(th);
+function buildGrid(th){const{grid:g,W,H}=LV;const tx=th.key?ugTex(th.key):themeTex(th);const WH=th.h||WALLH;LV.wallH=WH;
   const cells=[];for(let j=0;j<H;j++)for(let i=0;i<W;i++){if(g[j][i]!==1)continue;let near=false;for(let dj=-1;dj<=1&&!near;dj++)for(let di=-1;di<=1;di++){const y=j+dj,x=i+di;if(y>=0&&y<H&&x>=0&&x<W&&g[y][x]!==1){near=true;break;}}if(near)cells.push([i,j]);}
-  const im=new THREE.InstancedMesh(new THREE.BoxGeometry(S,WALLH,S),new THREE.MeshStandardMaterial({map:tx.wall,roughness:.95}),cells.length);
-  cells.forEach(([i,j],k)=>{_m4.makeTranslation(i*S+S/2,WALLH/2,j*S+S/2);im.setMatrixAt(k,_m4);});im.instanceMatrix.needsUpdate=true;world.add(im);LV.wallIM=im;LV.wallCells=cells;
+  if(th.blob){const im=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:th.wallC,roughness:.95,flatShading:true}),cells.length*3);const r=rng(cells.length);let k=0;
+    cells.forEach(([i,j])=>{for(let n=0;n<3;n++){const y=n===0?1.2:n===1?WH*.5:WH-1;_e.set(r()*3,r()*3,0,'YXZ');_q.setFromEuler(_e);_s.set(S*rand(.62,.78),n===1?WH*.42:S*rand(.5,.7),S*rand(.62,.78));_p.set(i*S+S/2+(r()-.5)*.8,y,j*S+S/2+(r()-.5)*.8);_m4.compose(_p,_q,_s);im.setMatrixAt(k++,_m4);}});
+    im.instanceMatrix.needsUpdate=true;world.add(im);LV.wallIM=im;}
+  else{const im=new THREE.InstancedMesh(new THREE.BoxGeometry(S,WH,S),new THREE.MeshStandardMaterial({map:tx.wall,roughness:.95}),cells.length);
+    cells.forEach(([i,j],k)=>{_m4.makeTranslation(i*S+S/2,WH/2,j*S+S/2);im.setMatrixAt(k,_m4);});im.instanceMatrix.needsUpdate=true;world.add(im);LV.wallIM=im;}
+  LV.wallCells=cells;
   const ft=tx.floor.clone();ft.needsUpdate=true;ft.repeat.set(W,H);
   const floor=new THREE.Mesh(new THREE.PlaneGeometry(W*S,H*S),new THREE.MeshStandardMaterial({map:ft,roughness:.9}));floor.rotation.x=-Math.PI/2;floor.position.set(W*S/2,0,H*S/2);world.add(floor);LV.floorMesh=floor;
-  const ceil=new THREE.Mesh(new THREE.PlaneGeometry(W*S,H*S),new THREE.MeshStandardMaterial({color:th.mortar,roughness:1}));ceil.rotation.x=Math.PI/2;ceil.position.set(W*S/2,WALLH,H*S/2);world.add(ceil);LV.ceilMesh=ceil;
+  let cm;if(tx.ceil){const ct=tx.ceil.clone();ct.needsUpdate=true;ct.repeat.set(W,H);cm=new THREE.MeshStandardMaterial({map:ct,roughness:1});}else cm=new THREE.MeshStandardMaterial({color:th.blob?0x18121f:th.mortar,roughness:1});
+  const ceil=new THREE.Mesh(new THREE.PlaneGeometry(W*S,H*S),cm);ceil.rotation.x=Math.PI/2;ceil.position.set(W*S/2,WH,H*S/2);world.add(ceil);LV.ceilMesh=ceil;
   const cave=th===THEMES.cave;const wm=cave?M(0x2b86a8,{emissive:0x0f4e66,transparent:true,opacity:.86,roughness:.1,flatShading:false}):M(0x2aa8a0,{emissive:0x0f6a66,transparent:true,opacity:.82,roughness:.1,flatShading:false});LV.waterMat=wm;
   for(let j=0;j<H;j++)for(let i=0;i<W;i++)if(g[j][i]===2||g[j][i]===6){const w=new THREE.Mesh(new THREE.PlaneGeometry(S,S),wm);w.rotation.x=-Math.PI/2;w.position.set(i*S+S/2,.06,j*S+S/2);world.add(w);}
   scene.background=new THREE.Color(th.fog);scene.fog=new THREE.FogExp2(th.fog,th.fogD);
@@ -772,6 +835,234 @@ function prop(ch,x,z,r){let m;
   else{const P=[];for(let k=0;k<3;k++)P.push(part(GB.dod,jc(0x6a6458),(r()-.5)*.8,.2,(r()-.5)*.8,r()*3,r()*3,0,.3+r()*.3,.25,.3+r()*.3));m=new THREE.Mesh(merge(P),JMAT);m.position.set(x,0,z);}
   if(m)world.add(m);}
 
+/* ---------- underground styles ---------- */
+/* Each underground chapter has its own layout and its own dressing:
+   Ch5 catacombs: a lattice of long burial galleries with niche-lined walls, ossuary halls and crypt chambers, all half flooded.
+   Ch6 mines: timbered drifts with rails, connecting caverns full of carts, lanterns and old bones.
+   Ch7 fungal hollows: organic caves, high-roofed, with giant glowing mushrooms you have to weave between.
+   Ch8 asylum: long tiled halls lined with patient cells, wards and offices, under flickering strip lights.
+   Grid value 7 is a solid cell that is drawn as a prop (a giant mushroom stem) rather than as a wall. */
+
+function emptyGrid(W,H,v=1){const g=[];for(let j=0;j<H;j++)g.push(new Uint8Array(W).fill(v));return g;}
+function finishLayout(g,W,H,rooms,r,start,extra){const dist=bfs(g,W,H,start.cx,start.cy);rooms=rooms.filter(o=>dist[o.cy*W+o.cx]>=0);if(!rooms.includes(start))rooms.unshift(start);
+  let exitRoom=null,md=-1;for(const o of rooms){if(o===start||o.j)continue;const d=dist[o.cy*W+o.cx];if(d>md){md=d;exitRoom=o;}}if(!exitRoom)exitRoom=rooms[rooms.length-1];
+  const sorted=rooms.filter(o=>o!==start&&o!==exitRoom&&!o.j).sort((a,b)=>dist[a.cy*W+a.cx]-dist[b.cy*W+b.cx]);
+  const keeperRoom=sorted.length?sorted[Math.floor(sorted.length*.7)]:exitRoom;
+  return Object.assign({grid:g,W,H,rooms,start,exitRoom,keeperRoom,r},extra||{});}
+function reachAll(g,W,H,s,pts){const d=bfs(g,W,H,s[0],s[1]);return pts.every(([i,j])=>d[j*W+i]>=0);}
+function shuffleR(a,r){for(let i=a.length-1;i>0;i--){const k=Math.floor(r()*(i+1));[a[i],a[k]]=[a[k],a[i]];}return a;}
+
+/* --- Ch5: catacombs --- */
+function genCatacombs(lv,seed){const r=rng(seed);const PIT=5,N=4+(lv>1?1:0)+(lv>2?1:0);const W=N*PIT+5,H=W;const g=emptyGrid(W,H);
+  const L=[];for(let k=0;k<=N;k++)L.push(2+k*PIT);const last=L[N];
+  for(const j of L)for(let i=2;i<=last;i++)g[j][i]=0;for(const i of L)for(let j=2;j<=last;j++)g[j][i]=0;
+  const X=[];for(const a of L)for(const b of L)X.push([a,b]);
+  const segs=[];for(let a=0;a<=N;a++)for(let b=0;b<N;b++){segs.push([true,a,b]);segs.push([false,a,b]);}shuffleR(segs,r);
+  let closed=0;for(const[hz,a,b]of segs){if(closed>segs.length*.36)break;const cells=[];for(let k=L[b]+1;k<L[b+1];k++)cells.push(hz?[k,L[a]]:[L[a],k]);
+    cells.forEach(([i,j])=>g[j][i]=1);if(reachAll(g,W,H,[2,2],X))closed++;else cells.forEach(([i,j])=>g[j][i]=0);}
+  const rooms=[];
+  for(let a=0;a<N;a++)for(let b=0;b<N;b++){const x0=L[a]+1,y0=L[b]+1;const roll=r();
+    if(roll<.16){for(let j=y0;j<y0+4;j++)for(let i=x0;i<x0+4;i++)g[j][i]=0;for(const[i,j]of[[x0,y0],[x0+3,y0],[x0,y0+3],[x0+3,y0+3]])g[j][i]=1;rooms.push({x:x0,y:y0,w:4,h:4,cx:x0+1,cy:y0+1,kind:'ossuary'});}
+    else if(roll<.7){const cx=x0+1,cy=y0+1;for(let j=cy;j<cy+2;j++)for(let i=cx;i<cx+2;i++)g[j][i]=0;
+      const doors=shuffleR([[cx-1,cy+(r()<.5?0:1),cx-2,0],[cx+2,cy+(r()<.5?0:1),cx+3,0],[cx+(r()<.5?0:1),cy-1,0,cy-2],[cx+(r()<.5?0:1),cy+2,0,cy+3]],r);
+      for(const[di,dj,oi,oj]of doors){const ti=oi||di,tj=oj||dj;if(g[tj][ti]===0){g[dj][di]=0;break;}}
+      rooms.push({x:cx,y:cy,w:2,h:2,cx,cy,kind:'crypt'});}}
+  for(const[i,j]of X){if(g[j][i]===0&&((i>0&&g[j][i-1]===0)||(i<W-1&&g[j][i+1]===0)||(g[j-1]&&g[j-1][i]===0)||(g[j+1]&&g[j+1][i]===0)))rooms.push({x:i,y:j,w:1,h:1,cx:i,cy:j,j:true});}
+  const start=rooms.find(o=>o.j&&o.cx===2&&o.cy===2)||rooms.find(o=>o.j);
+  return finishLayout(g,W,H,rooms,r,start);}
+
+/* --- Ch6: mines --- */
+function genMines(lv,seed){const r=rng(seed);const W=36+lv*3,H=28+lv*2;const g=emptyGrid(W,H);const rooms=[];
+  const open=(i,j)=>{if(i>0&&j>0&&i<W-1&&j<H-1)g[j][i]=0;};
+  const cav=[];for(let t=0;t<400&&cav.length<5+lv;t++){const cx=4+Math.floor(r()*(W-8)),cy=4+Math.floor(r()*(H-8));if(cav.some(c=>Math.abs(c.cx-cx)+Math.abs(c.cy-cy)<10))continue;cav.push({cx,cy,rad:1.7+r()*1.3});}
+  cav.sort((a,b)=>a.cx-b.cx);
+  for(const c of cav){for(let j=c.cy-4;j<=c.cy+4;j++)for(let i=c.cx-4;i<=c.cx+4;i++){const a=Math.atan2(j-c.cy,i-c.cx);const rr=c.rad*(1+Math.sin(a*3+c.cx)*.22);if(Math.hypot(i-c.cx,j-c.cy)<=rr)open(i,j);}
+    rooms.push({x:c.cx-1,y:c.cy-1,w:3,h:3,cx:c.cx,cy:c.cy,kind:'cavern'});}
+  const drift=(a,b)=>{let i=a.cx,j=a.cy;let hz=r()<.5;let guard=0;while((i!==b.cx||j!==b.cy)&&guard++<200){const len=3+Math.floor(r()*5);for(let s=0;s<len;s++){if(hz&&i!==b.cx)i+=Math.sign(b.cx-i);else if(!hz&&j!==b.cy)j+=Math.sign(b.cy-j);else break;open(i,j);}hz=!hz;}};
+  for(let k=1;k<cav.length;k++)drift(cav[k-1],cav[k]);
+  for(let n=0;n<2;n++){const a=cav[Math.floor(r()*cav.length)],b=cav[Math.floor(r()*cav.length)];if(a!==b)drift(a,b);}
+  for(let n=0;n<4+lv;n++){const tun=[];for(let j=1;j<H-1;j++)for(let i=1;i<W-1;i++)if(g[j][i]===0)tun.push([i,j]);const[i0,j0]=tun[Math.floor(r()*tun.length)];const[di,dj]=[[1,0],[-1,0],[0,1],[0,-1]][Math.floor(r()*4)];
+    let i=i0,j=j0,len=4+Math.floor(r()*5),ok=0;for(let s=0;s<len;s++){i+=di;j+=dj;if(i<2||j<2||i>W-3||j>H-3)break;open(i,j);ok++;}if(ok>=3)rooms.push({x:i,y:j,w:1,h:1,cx:i,cy:j,kind:'deadend'});}
+  return finishLayout(g,W,H,rooms,r,rooms[0]);}
+
+/* --- Ch7: fungal hollows --- */
+function genFungal(lv,seed){for(let attempt=0;attempt<8;attempt++){const r=rng(seed+attempt*977);const W=34+lv*3,H=W;let g=emptyGrid(W,H);
+  for(let j=1;j<H-1;j++)for(let i=1;i<W-1;i++)g[j][i]=r()<.44?1:0;
+  for(let it=0;it<5;it++){const n=emptyGrid(W,H);for(let j=1;j<H-1;j++)for(let i=1;i<W-1;i++){let c=0;for(let b=-1;b<=1;b++)for(let a=-1;a<=1;a++)if(g[j+b][i+a]===1)c++;n[j][i]=c>=5?1:0;}g=n;}
+  const lab=new Int16Array(W*H).fill(-1);let best=-1,bestN=0;const sizes=[];
+  for(let j=1;j<H-1;j++)for(let i=1;i<W-1;i++){if(g[j][i]!==0||lab[j*W+i]>=0)continue;const id=sizes.length;const d=bfs(g,W,H,i,j);let n=0;for(let k=0;k<W*H;k++)if(d[k]>=0&&lab[k]<0){lab[k]=id;n++;}sizes.push(n);if(n>bestN){bestN=n;best=id;}}
+  if(bestN<W*H*.34)continue;
+  for(let j=0;j<H;j++)for(let i=0;i<W;i++)if(g[j][i]===0&&lab[j*W+i]!==best)g[j][i]=1;
+  const clr=new Int16Array(W*H).fill(99);const q=[];for(let j=0;j<H;j++)for(let i=0;i<W;i++)if(g[j][i]===1){clr[j*W+i]=0;q.push(j*W+i);}
+  for(let h=0;h<q.length;h++){const c=q[h];const x=c%W,y=(c/W)|0;for(const[a,b]of[[1,0],[-1,0],[0,1],[0,-1]]){const xx=x+a,yy=y+b;if(xx<0||yy<0||xx>=W||yy>=H)continue;const k=yy*W+xx;if(clr[k]>clr[c]+1){clr[k]=clr[c]+1;q.push(k);}}}
+  const cand=[];for(let j=1;j<H-1;j++)for(let i=1;i<W-1;i++)if(g[j][i]===0)cand.push([i,j,clr[j*W+i]+r()*.5]);cand.sort((a,b)=>b[2]-a[2]);
+  const rooms=[];for(const[i,j]of cand){if(rooms.length>=7+lv)break;if(rooms.some(o=>Math.abs(o.cx-i)+Math.abs(o.cy-j)<8))continue;rooms.push({x:i-1,y:j-1,w:3,h:3,cx:i,cy:j,kind:'grove'});}
+  rooms.sort((a,b)=>(a.cx+a.cy)-(b.cx+b.cy));
+  const pts=rooms.map(o=>[o.cx,o.cy]);const shrooms=[];
+  for(const[i,j,c]of shuffleR(cand.filter(e=>e[2]>=2.2),r)){if(shrooms.length>=10+lv*3)break;if(rooms.some(o=>Math.abs(o.cx-i)<=1&&Math.abs(o.cy-j)<=1))continue;if(shrooms.some(([a,b])=>Math.abs(a-i)+Math.abs(b-j)<3))continue;
+    g[j][i]=7;if(reachAll(g,W,H,pts[0],pts))shrooms.push([i,j]);else g[j][i]=0;}
+  return finishLayout(g,W,H,rooms,r,rooms[0],{shrooms});}
+  return genDungeon(3,lv,seed);}
+
+/* --- Ch8: the asylum --- */
+function genAsylum(lv,seed){const r=rng(seed);const n=6+lv,halls=3;const W=3*n+6,H=halls*8+1;const g=emptyGrid(W,H);const rooms=[];
+  const HY=[];for(let h=0;h<halls;h++)HY.push(4+h*8);
+  for(const hy of HY)for(let i=1;i<=W-2;i++)g[hy][i]=0;
+  for(let h=0;h<halls-1;h++){const x=h%2===0?W-2:1;for(let j=HY[h];j<=HY[h+1];j++)g[j][x]=0;}
+  const kinds=['cell','cell','cell','padded','ward','office','cell','bath'];
+  for(const hy of HY)for(const side of[-1,1]){if(side===-1&&hy===HY[0]&&false)continue;let k=0;
+    while(k<n){const x0=3+k*3;const ry=side<0?hy-3:hy+2;if(ry<1||ry+1>H-2){k++;continue;}
+      const wide=k<n-1&&r()<.2;const w=wide?5:2;for(let j=ry;j<ry+2;j++)for(let i=x0;i<x0+w;i++)g[j][i]=0;
+      const kind=wide?'ward':kinds[Math.floor(r()*kinds.length)];const locked=!wide&&r()<.15;
+      const dx=x0+(r()<.5?0:1);if(!locked)g[side<0?hy-1:hy+1][dx]=0;
+      if(!locked)rooms.push({x:x0,y:ry,w,h:2,cx:dx,cy:side<0?ry+1:ry,kind,door:[dx,side<0?hy-1:hy+1],side});
+      k+=wide?2:1;}}
+  for(const hy of HY)for(let i=2;i<W-2;i+=5)rooms.push({x:i,y:hy,w:1,h:1,cx:i,cy:hy,j:true,hall:true});
+  const start=rooms.find(o=>o.j&&o.cy===HY[0]&&o.cx===2)||rooms.find(o=>o.j);
+  return finishLayout(g,W,H,rooms,r,start,{HY});}
+
+/* --- textures --- */
+function catacombWallTex(){return canvasTex((x,w,h)=>{x.fillStyle='#635a46';x.fillRect(0,0,w,h);
+  for(let i=0;i<2600;i++){x.fillStyle=`rgba(${Math.random()<.5?'0,0,0':'255,240,210'},${rand(0,.09)})`;x.fillRect(rand(0,w),rand(0,h),rand(1,4),rand(1,4));}
+  for(let row=0;row<3;row++)for(let col=0;col<2;col++){const nx=14+col*122,ny=16+row*80,nw=104,nh=56;
+    x.fillStyle='#16120c';x.beginPath();x.moveTo(nx,ny+nh);x.lineTo(nx,ny+14);x.quadraticCurveTo(nx+nw/2,ny-8,nx+nw,ny+14);x.lineTo(nx+nw,ny+nh);x.closePath();x.fill();
+    x.strokeStyle='rgba(0,0,0,.5)';x.lineWidth=3;x.stroke();
+    const full=Math.random();if(full<.25)continue;
+    for(let b=0;b<5;b++){x.strokeStyle='#a89c7c';x.lineWidth=5;x.beginPath();const by=ny+nh-6-b*3;x.moveTo(nx+8+rand(0,10),by);x.lineTo(nx+nw-8-rand(0,10),by-rand(-3,3));x.stroke();}
+    const sk=full<.6?2:4;for(let s=0;s<sk;s++){const sx=nx+18+s*(nw-36)/Math.max(1,sk-1),sy=ny+nh-20-(s%2)*6;x.fillStyle='#b8ad8e';x.beginPath();x.arc(sx,sy,10,0,6.283);x.fill();x.fillRect(sx-6,sy+4,12,8);
+      x.fillStyle='#1b150e';x.beginPath();x.arc(sx-4,sy,3,0,6.283);x.arc(sx+4,sy,3,0,6.283);x.fill();x.fillRect(sx-1,sy+4,2,4);}}
+  x.fillStyle='rgba(40,70,60,.35)';x.fillRect(0,h-26,w,26);for(let i=0;i<40;i++){x.fillStyle=`rgba(30,60,50,${rand(.1,.3)})`;x.fillRect(rand(0,w),h-26-rand(0,30),rand(2,5),rand(10,40));}},256,256);}
+function mudTex(base,spots){return canvasTex((x,w,h)=>{x.fillStyle=base;x.fillRect(0,0,w,h);for(let i=0;i<3000;i++){x.fillStyle=`rgba(${Math.random()<.5?'0,0,0':'255,255,255'},${rand(0,.08)})`;x.fillRect(rand(0,w),rand(0,h),rand(1,4),rand(1,4));}
+  if(spots)for(let i=0;i<26;i++){x.fillStyle=spots;x.globalAlpha=rand(.2,.6);x.beginPath();x.arc(rand(0,w),rand(0,h),rand(1,4),0,6.283);x.fill();}x.globalAlpha=1;});}
+function mineWallTex(){const t=rockTex(0x6e5638,0x2a1e12);const c=t.image.getContext('2d');for(let i=0;i<18;i++){c.fillStyle=Math.random()<.6?'#e8b84a':'#c8c0a8';c.globalAlpha=rand(.5,.9);c.beginPath();const x=rand(0,256),y=rand(0,256);for(let k=0;k<5;k++)c.lineTo(x+rand(-7,7),y+rand(-5,5));c.fill();}c.globalAlpha=1;t.needsUpdate=true;return t;}
+function asylumWallTex(){return canvasTex((x,w,h)=>{const split=h*.56;x.fillStyle='#4a4c42';x.fillRect(0,0,w,h);x.fillStyle='#8f9078';x.fillRect(0,0,w,split);
+  for(let i=0;i<40;i++){const px=rand(0,w),py=rand(0,split),rr=rand(4,18);x.fillStyle=`rgba(${randi(70,110)},${randi(80,100)},${randi(50,70)},${rand(.05,.2)})`;x.beginPath();x.ellipse(px,py,rr,rr*rand(.5,1.4),0,0,6.283);x.fill();}
+  for(let i=0;i<14;i++){x.fillStyle=`rgba(60,50,30,${rand(.08,.22)})`;const px=rand(0,w);x.fillRect(px,rand(0,split*.4),rand(2,5),rand(30,split));}
+  for(let i=0;i<5;i++){x.fillStyle='#8e8a70';const px=rand(0,w),py=rand(0,split-20);x.beginPath();for(let k=0;k<8;k++)x.lineTo(px+rand(-16,16),py+rand(-12,12));x.fill();}
+  x.fillStyle='#4e6a54';x.fillRect(0,split,w,7);
+  const ts=18;for(let ty=split+7;ty<h;ty+=ts)for(let tx=0;tx<w;tx+=ts){x.fillStyle=`rgb(${randi(112,130)},${randi(134,148)},${randi(118,130)})`;x.fillRect(tx+1,ty+1,ts-2,ts-2);if(Math.random()<.06){x.fillStyle='#3a3a32';x.fillRect(tx+1,ty+1,ts-2,ts-2);}}
+  for(let i=0;i<30;i++){x.fillStyle=`rgba(70,50,30,${rand(.05,.2)})`;x.fillRect(rand(0,w),split+rand(0,h-split),rand(4,30),rand(4,20));}
+  x.fillStyle='rgba(50,40,30,.4)';x.fillRect(0,h-10,w,10);},256,256);}
+function checkerTex(){return canvasTex((x,w,h)=>{const n=4,s=w/n;for(let j=0;j<n;j++)for(let i=0;i<n;i++){x.fillStyle=(i+j)%2?'#22241f':'#86857a';x.fillRect(i*s,j*s,s,s);}
+  for(let i=0;i<2400;i++){x.fillStyle=`rgba(${Math.random()<.6?'40,30,10':'255,255,255'},${rand(0,.1)})`;x.fillRect(rand(0,w),rand(0,h),rand(1,5),rand(1,5));}},128,128);}
+function ceilTileTex(){return canvasTex((x,w,h)=>{x.fillStyle='#8c8c7e';x.fillRect(0,0,w,h);x.strokeStyle='#5a5a50';x.lineWidth=4;for(let k=0;k<=2;k++){x.beginPath();x.moveTo(k*w/2,0);x.lineTo(k*w/2,h);x.stroke();x.beginPath();x.moveTo(0,k*h/2);x.lineTo(w,k*h/2);x.stroke();}
+  for(let i=0;i<10;i++){x.fillStyle=`rgba(90,70,40,${rand(.1,.3)})`;x.beginPath();x.arc(rand(0,w),rand(0,h),rand(4,18),0,6.283);x.fill();}},128,128);}
+function scrawlTex(){return canvasTex((x,w,h)=>{x.clearRect(0,0,w,h);const lines=['LET ME OUT','IT IS UNDER US','DON’T LISTEN','|||| |||| ||','THE ISLAND','DREAMS','WAKE UP','NO ESCAPE'];
+  lines.forEach((s,i)=>{const cx=(i%2)*w/2+w/4,cy=Math.floor(i/2)*h/4+h/8;x.save();x.translate(cx,cy);x.rotate(rand(-.12,.12));x.font=`bold ${s.length>9?22:28}px Georgia, serif`;x.textAlign='center';x.textBaseline='middle';x.fillStyle=i%3===0?'rgba(120,10,10,.9)':'rgba(25,20,18,.85)';x.fillText(s,0,0);x.restore();});},512,512);}
+const UG_TEX={};
+function ugTex(key){if(!UG_TEX[key]){const f={
+    cat:()=>({wall:catacombWallTex(),floor:flagTex(0x3a463f,0x182220),ceil:null}),
+    mine:()=>({wall:mineWallTex(),floor:mudTex('#4a3a28','rgba(30,20,10,1)'),ceil:null}),
+    fung:()=>({wall:null,floor:mudTex('#262030','rgba(140,255,120,1)'),ceil:null}),
+    asy:()=>({wall:asylumWallTex(),floor:checkerTex(),ceil:ceilTileTex()})}[key]();
+    Object.values(f).forEach(t=>t&&shared(t));UG_TEX[key]=f;}return UG_TEX[key];}
+Object.assign(THEMES[1],{key:'cat',h:5.4,fog:0x0a1a1c,fogD:.045,amb:0x3e5a58,mortar:0x1a2422});
+Object.assign(THEMES[2],{key:'mine',h:4.4,fog:0x120c06,fogD:.046});
+Object.assign(THEMES[3],{key:'fung',h:9,blob:true,wallC:0x3e3452,fog:0x0d0916,fogD:.036,amb:0x5a4a7a});
+THEMES.asylum={name:'The Asylum',key:'asy',h:4.2,wall:0xbfc4a6,mortar:0x23261f,floor:0x6a6a5a,fog:0x121510,fogD:.055,torch:0xdfffe8,amb:0x3e463c,accent:0xff7a3a};
+
+/* --- dressing helpers --- */
+function ugFaces(cb){const{grid:g,W,H}=LV;for(let j=0;j<H;j++)for(let i=0;i<W;i++){if(!isPass(g[j][i]))continue;for(const[a,b]of[[1,0],[-1,0],[0,1],[0,-1]]){const x=i+a,y=j+b;if(x<0||y<0||x>=W||y>=H||g[y][x]===1)cb(i,j,a,b);}}}
+function ugDir(i,j){const g=LV.grid;const w=v=>v===1||v===undefined;const ew=w(g[j][i-1])&&w(g[j][i+1]),ns=w(g[j-1]&&g[j-1][i])&&w(g[j+1]&&g[j+1][i]);return ew&&!ns?'ns':ns&&!ew?'ew':null;}
+function ugLight(x,y,z,color,base,dist,fl,mode){const l=new THREE.PointLight(color,base,dist||14,1.6);l.position.set(x,y,z);world.add(l);flick.push({light:l,base,f:rand(1,3),p:rand(0,6),fl:fl||{visible:true,scale:new V3(1,1,1)},soft:mode!=='fire',blink:mode==='blink'});return l;}
+function ugMesh(P,mat){if(!P.length)return null;const m=new THREE.Mesh(merge(P),mat||JMAT);world.add(m);return m;}
+const GLOW_MAT=shared(new THREE.MeshBasicMaterial({vertexColors:true}));
+function bonePile(P,x,z,s=1){for(let k=0;k<6;k++)P.push(part(GB.box,jc(0xd8cfb0,.08),x+rand(-.5,.5)*s,.06+k*.04,z+rand(-.5,.5)*s,0,rand(0,3),rand(-.2,.2),.08*s,.08*s,rand(.5,.8)*s));
+  for(let k=0;k<2;k++){const sx=x+rand(-.4,.4)*s,sz=z+rand(-.4,.4)*s;P.push(part(GB.ico,0xe2d8bc,sx,.2*s,sz,0,rand(0,6),0,.2*s,.18*s,.22*s));P.push(part(GB.box,0x1a140e,sx+Math.sin(0)*.1,.22*s,sz+.18*s,0,0,0,.18*s,.05*s,.04*s));}}
+function skeleton(P,x,z,ry){const c=0xd8cfb0;const s=Math.sin(ry),co=Math.cos(ry);const at=(dx,dz)=>[x+dx*co+dz*s,z-dx*s+dz*co];
+  let[a,b]=at(0,-.2);P.push(part(GB.ico,0xe2d8bc,a,.62,b,0,ry,0,.17,.17,.19));[a,b]=at(0,.2);for(let k=0;k<4;k++){const[p,q]=at(0,.15+k*.12);P.push(part(GB.box,c,p,.35-k*.03,q,0,ry,0,.42-k*.05,.04,.04));}
+  [a,b]=at(0,.35);P.push(part(GB.box,c,a,.3,b,-.9,ry,0,.05,.05,.7));for(const sd of[-1,1]){const[p,q]=at(sd*.15,.9);P.push(part(GB.box,c,p,.06,q,0,ry+sd*.2,0,.05,.05,.8));const[u,v]=at(sd*.3,.2);P.push(part(GB.box,c,u,.15,v,0,ry+sd*.5,0,.04,.04,.6));}}
+
+/* --- Ch5 dressing --- */
+function dressCatacombs(){const{grid:g,W,H}=LV;const WH=LV.wallH;const P=[],GL=[];let lights=0;
+  for(let j=0;j<H;j++)for(let i=0;i<W;i++){if(!isPass(g[j][i]))continue;const c=cellCenter(i,j);const d=ugDir(i,j);if(!d)continue;
+    const along=d==='ns';for(let s=0;s<=6;s++){const a=s/6*Math.PI;const ox=Math.cos(a)*(S/2-.15),oy=WH-1.6+Math.sin(a)*1.45;P.push(part(GB.box,jc(0x6e6450,.06),along?c.x+ox:c.x,oy,along?c.z:c.z+ox,0,along?0:-Math.PI/2,a,.4,.86,.5));}
+    if(LV.r()<.12)bonePile(P,c.x+rand(-1,1),c.z+rand(-1,1),.8);}
+  for(const o of LV.rooms){if(o.j||o===LV.start||o===LV.exitRoom)continue;const c=cellCenter(o.cx,o.cy);const cx=c.x+(o.w>1?S/2:0),cz=c.z+(o.h>1?S/2:0);
+    if(o.kind==='crypt'){const ry=LV.r()<.5?0:Math.PI/2;P.push(part(GB.box,0x6a6656,cx,.5,cz,0,ry,0,1.2,1,2.4));P.push(part(GB.box,0x7a7462,cx,1.05,cz,0,ry+(LV.r()<.4?.25:0),0,1.35,.16,2.6));P.push(part(GB.box,0x8a846e,cx,1.18,cz,0,ry,0,.5,.12,1.6));
+      for(const[dx,dz]of[[-2.6,-2.6],[2.6,2.6],[-2.6,2.6],[2.6,-2.6]])bonePile(P,cx+dx,cz+dz,1.1);
+      for(let k=0;k<5;k++){const x=cx-2.8+rand(0,.6),z=cz+rand(-2.6,2.6),h=rand(.15,.35);P.push(part(GB.cyl,0xe8e0c8,x,.6+h/2,z,0,0,0,.05,h,.05));GL.push(part(GB.cone,0xffc060,x,.68+h+.05,z,0,0,0,.04,.12,.04));P.push(part(GB.box,0x5a5448,x,.3,z,0,0,0,.4,.6,.4));}
+      if(lights<6){ugLight(cx-2.6,1.4,cz,0xffb060,1.2,12,null,'fire');lights++;}}
+    else if(o.kind==='ossuary'){const ox=cellCenter(o.x,o.y).x,oz=cellCenter(o.x,o.y).z;
+      for(const[pi,pj]of[[o.x,o.y],[o.x+3,o.y],[o.x,o.y+3],[o.x+3,o.y+3]]){const pc=cellCenter(pi,pj);for(const[fx,fz]of[[1,0],[-1,0],[0,1],[0,-1]])for(let lay=0;lay<8;lay++)for(let k=0;k<7;k++){const t=(k-3)*.52+(lay%2)*.26;if(Math.abs(t)>1.85)continue;const x=pc.x+fx*2.06+fz*t,z=pc.z+fz*2.06+fx*t;P.push(part(GB.ico,jc(0xa89c80,.08),x,.35+lay*.52,z,0,Math.atan2(fx,fz),0,.24,.22,.2));if(lay%3===1)P.push(part(GB.box,0xb8ad8e,x,.62+lay*.52,z,0,Math.atan2(fz,-fx),0,.5,.08,.08));}}
+      const mc=cellCenter(o.x+1,o.y+1);for(let k=0;k<4;k++)skeleton(P,mc.x+S/2+rand(-2,2),mc.z+S/2+rand(-2,2),rand(0,6));
+      if(lights<6){ugLight(mc.x+S/2,2.2,mc.z+S/2,0x7fe6ff,1.4,18);lights++;}}}
+  ugMesh(P);ugMesh(GL,GLOW_MAT);
+  const water=new THREE.Mesh(new THREE.PlaneGeometry(W*S,H*S),M(0x1e4a4c,{transparent:true,opacity:.62,roughness:.15,metalness:.2,flatShading:false}));water.rotation.x=-Math.PI/2;water.position.set(W*S/2,.22,H*S/2);world.add(water);
+  const cw=[];for(let k=0;k<40;k++){const o=LV.rooms[Math.floor(LV.r()*LV.rooms.length)];const c=cellCenter(o.cx,o.cy);cw.push(part(GB.leaf,0xd8d8d0,c.x+rand(-1.6,1.6),WH-1.4+rand(-.3,.3),c.z+rand(-1.6,1.6),rand(-.6,.6),rand(0,3),rand(-.6,.6),rand(.8,1.6),1,rand(.8,1.6)));}
+  const web=ugMesh(cw,shared(new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.18,side:THREE.DoubleSide,depthWrite:false})));
+  for(let k=0;lights<6&&k<20;k++){const o=LV.rooms[Math.floor(LV.r()*LV.rooms.length)];if(!o.j)continue;const c=cellCenter(o.cx,o.cy);ugLight(c.x,3.2,c.z,0x7fe6ff,.9,12);lights++;}}
+
+/* --- Ch6 dressing --- */
+function dressMines(){const{grid:g,W,H}=LV;const WH=LV.wallH;const P=[],GL=[];let lights=0,n=0;const wd=0x6a4a2c,wd2=0x5a3e24,iron=0x4a4a4e;
+  for(let j=0;j<H;j++)for(let i=0;i<W;i++){if(!isPass(g[j][i]))continue;const c=cellCenter(i,j);const d=ugDir(i,j);if(!d)continue;const ns=d==='ns';const ry=ns?0:Math.PI/2;n++;
+    const side=(k)=>ns?[c.x+k*(S/2-.25),c.z]:[c.x,c.z+k*(S/2-.25)];
+    if(n%1===0){for(const k of[-1,1]){const[x,z]=side(k);P.push(part(GB.box,jc(wd,.1),x,(WH-.4)/2,z,0,0,k*.05,.3,WH-.4,.3));}
+      P.push(part(GB.box,jc(wd2,.1),c.x,WH-.5,c.z,0,ry+Math.PI/2,0,.3,.32,S-.1));
+      for(const k of[-.8,0,.8])P.push(part(GB.box,jc(wd,.15),ns?c.x+k:c.x,WH-.3,ns?c.z:c.z+k,0,ry,0,.4,.06,S));}
+    for(const k of[-.45,.45])P.push(part(GB.box,iron,ns?c.x+k:c.x,.08,ns?c.z:c.z+k,0,ry,0,.08,.1,S));
+    for(let s=0;s<4;s++){const t=-S/2+.5+s;P.push(part(GB.box,jc(0x4a3420,.1),ns?c.x:c.x+t,.03,ns?c.z+t:c.z,0,ry+Math.PI/2,0,.22,.06,1.3));}
+    if(n%5===0){const[x,z]=side(1);GL.push(part(GB.box,0xffc060,ns?x-.35:x,WH-1.1,ns?z:z-.35,0,0,0,.18,.26,.18));P.push(part(GB.box,0x2a2a2a,ns?x-.35:x,WH-.92,ns?z:z-.35,0,0,0,.24,.06,.24));if(lights<6&&n%10===0){ugLight(ns?x-.6:x,WH-1.3,ns?z:z-.6,0xffb050,1.3,13,null,'fire');lights++;}}
+    if(LV.r()<.06)bonePile(P,c.x+rand(-.8,.8),c.z+rand(-.8,.8),.9);}
+  for(const o of LV.rooms){const c=cellCenter(o.cx,o.cy);
+    if(o===LV.exitRoom||o===LV.start){if(lights<6){ugLight(c.x,2.6,c.z,0xffb050,1.2,14,null,'fire');lights++;}continue;}
+    if(o.kind==='cavern'){const r=LV.r;const cart=(x,z,ry,tip)=>{P.push(part(GB.box,0x5a4a3a,x,.75,z,tip?.5:0,ry,0,1.1,.7,1.6));P.push(part(GB.box,0x3a2e24,x,1.06,z,0,ry,0,1,.1,1.5));for(let k=0;k<5;k++)P.push(part(GB.dod,jc(0x8a7a5a),x+rand(-.3,.3),1.2,z+rand(-.5,.5),0,0,0,.25,.2,.25));for(const a of[-1,1])for(const b of[-1,1]){const s=Math.sin(ry),co=Math.cos(ry);P.push(part(GB.cyl,iron,x+a*.6*co+b*.55*s,.28,z-a*.6*s+b*.55*co,0,ry,Math.PI/2,.26,.12,.26));}};
+      cart(c.x+rand(-2,2),c.z+rand(-2,2),r()*3,r()<.3);
+      for(let k=0;k<3;k++){const x=c.x+rand(-3,3),z=c.z+rand(-3,3);if(isWall(x,z))continue;P.push(part(GB.box,jc(0x7a5a34),x,.4,z,0,r()*3,0,.8,.8,.8));}
+      for(let k=0;k<2;k++){const x=c.x+rand(-3,3),z=c.z+rand(-3,3);if(isWall(x,z))continue;P.push(part(GB.cyl,0x5a3e24,x,.55,z,0,0,0,.4,1.1,.4));P.push(part(GB.cyl,iron,x,.85,z,0,0,0,.42,.06,.42));}
+      skeleton(P,c.x+rand(-2,2),c.z+rand(-2,2),r()*6);bonePile(P,c.x+rand(-2.5,2.5),c.z+rand(-2.5,2.5),1.3);
+      for(let k=0;k<10;k++){const a=k/10*6.283,x=c.x+Math.cos(a)*1.1,z=c.z+Math.sin(a)*1.1;P.push(part(GB.box,0xd8cfb0,x,.9,z,0,-a,.4*Math.sin(a*2),.09,1.6,.09));}P.push(part(GB.box,0xd8cfb0,c.x,.3,c.z,0,0,0,.25,.25,2.4));
+      if(lights<6){ugLight(c.x,2.6,c.z,0xffb050,1.4,16,null,'fire');lights++;}}
+    else if(o.kind==='deadend'){P.push(part(GB.box,0x7a6a4a,c.x,1.2,c.z,.3,rand(0,3),.1,.08,2.4,.08));P.push(part(GB.box,0x5a5a5e,c.x+.1,2.3,c.z,0,0,.2,.6,.12,.12));}}
+  ugFaces((i,j,a,b)=>{if(LV.r()>.1)return;const c=cellCenter(i,j);const x=c.x+a*(S/2-.05),z=c.z+b*(S/2-.05);const y=rand(.8,WH-1.2);for(let k=0;k<4;k++)GL.push(part(GB.oct,k%2?0xffcf6a:0xe8a838,x+(b?rand(-1,1):0),y+rand(-.4,.4),z+(a?rand(-1,1):0),rand(0,3),rand(0,3),0,.12,.18,.12));});
+  ugMesh(P);ugMesh(GL,GLOW_MAT);
+  const dust=new THREE.Points(new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(Array.from({length:900},(_,k)=>k%3===1?rand(.3,WH):rand(0,(k%3?H:W)*S)),3)),new THREE.PointsMaterial({color:0xc8a878,size:.05,transparent:true,opacity:.5}));world.add(dust);LV.tick=dt=>{dust.position.y=Math.sin(T*.3)*.2;};}
+
+/* --- Ch7 dressing --- */
+const SHROOM_COLS=[0x4ad8ff,0xff5ad8,0x9dff5a,0xffa040,0xb98aff];
+function giantShroom(P,GL,x,z,h,rad,col,lean){const lx=Math.sin(lean)*1.2,lz=Math.cos(lean)*.6;
+  for(let s=0;s<4;s++){const t=s/4;P.push(part(GB.cyl,jc(0xd8d0c8,.05),x+lx*t,h*(s+.5)/4,z+lz*t,0,0,0,.55-.08*s,h/4+.05,.55-.08*s));}
+  const tx=x+lx,tz=z+lz;GL.push(part(GB.ico,col,tx,h+.1,tz,0,0,0,rad,rad*.45,rad));P.push(part(GB.cyl,jc(0x6a5a6a),tx,h-.05,tz,0,0,0,rad*.92,.12,rad*.92));
+  for(let k=0;k<6;k++){const a=rand(0,6.283),d=rand(.2,.75)*rad;GL.push(part(GB.ico,0xffffff,tx+Math.cos(a)*d,h+.1+rad*.4*Math.sqrt(1-(d/rad)**2),tz+Math.sin(a)*d,0,0,0,.18,.08,.18));}}
+function dressFungal(){const{grid:g,W,H}=LV;const WH=LV.wallH;const P=[],GL=[];let lights=0;const r=LV.r;
+  for(const[i,j]of LV.shrooms||[]){const c=cellCenter(i,j);const col=SHROOM_COLS[Math.floor(r()*SHROOM_COLS.length)];const h=rand(4.5,7.5),rad=rand(2.4,3.6);giantShroom(P,GL,c.x,c.z,h,rad,col,rand(0,6));if(lights<7){ugLight(c.x,h-1,c.z,col,1.6,18);lights++;}}
+  for(let j=0;j<H;j++)for(let i=0;i<W;i++){if(!isPass(g[j][i]))continue;const c=cellCenter(i,j);if(r()<.35){const n=randi(2,5);const col=SHROOM_COLS[Math.floor(r()*SHROOM_COLS.length)];
+      for(let k=0;k<n;k++){const x=c.x+rand(-1.6,1.6),z=c.z+rand(-1.6,1.6),h=rand(.2,1.1),rr=h*rand(.35,.6);P.push(part(GB.cyl,0xe0d8e0,x,h/2,z,0,0,0,.05+h*.05,h,.05+h*.05));GL.push(part(GB.ico,col,x,h,z,0,0,0,rr,rr*.5,rr));}}
+    if(r()<.08){const x=c.x+rand(-1,1),z=c.z+rand(-1,1);const s=rand(.5,1);GL.push(part(GB.ico,0xe8d8ff,x,s*.55,z,0,0,0,s*.6,s*.55,s*.6));}
+    if(r()<.12){for(let k=0;k<3;k++){const L=rand(1.5,4);const x=c.x+rand(-1.5,1.5),z=c.z+rand(-1.5,1.5);P.push(part(GB.box,0x5a4a6a,x,WH-L/2,z,0,0,0,.05,L,.05));GL.push(part(GB.ico,0x9dffd0,x,WH-L,z,0,0,0,.09,.12,.09));}}}
+  ugFaces((i,j,a,b)=>{if(r()>.22)return;const c=cellCenter(i,j);const x=c.x+a*(S/2-1.25),z=c.z+b*(S/2-1.25);const col=r()<.5?0xffb060:0xc8a0ff;
+    for(let k=0;k<randi(1,3);k++){const y=rand(.8,4),w=rand(.6,1.3);GL.push(part(GB.cyl,col,x-a*.1+(b?rand(-1.2,1.2):0),y+k*.5,z-b*.1+(a?rand(-1.2,1.2):0),0,0,0,w,.1,w));}});
+  ugMesh(P);const glow=ugMesh(GL,GLOW_MAT);
+  const pts=[];for(let k=0;k<500;k++)pts.push(rand(0,W*S),rand(.3,WH-.5),rand(0,H*S));const spores=new THREE.Points(new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(pts,3)),new THREE.PointsMaterial({color:0xb8ffd8,size:.09,transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false}));world.add(spores);
+  LV.tick=dt=>{spores.position.y=Math.sin(T*.4)*.6;spores.position.x=Math.sin(T*.13)*.8;};}
+
+/* --- Ch8 dressing --- */
+function dressAsylum(){const{grid:g,W,H}=LV;const WH=LV.wallH;const P=[],GL=[];let lights=0;const r=LV.r;const metal=0x7a7e7a,rust=0x6a4a34,sheet=0xd8d4c4;
+  for(const hy of LV.HY){for(let i=1;i<W-1;i+=2){if(!isPass(g[hy][i]))continue;const c=cellCenter(i,hy);const broken=r()<.2;(broken?P:GL).push(part(GB.box,broken?0x4a4a44:0xf4fff0,c.x,WH-.06,c.z,0,0,0,1.8,.08,.32));P.push(part(GB.box,0x9a9a90,c.x,WH-.02,c.z,0,0,0,1.9,.04,.42));
+      if(!broken&&i%6===1&&lights<7){ugLight(c.x,WH-.5,c.z,0xdfffe8,1.25,15,null,lights%3===1?'blink':'soft');lights++;}}
+    for(let i=2;i<W-2;i++){if(r()<.07&&isPass(g[hy][i])){const c=cellCenter(i,hy);const x=c.x+rand(-1,1),z=c.z+rand(-1.2,1.2);if(r()<.5){/* wheelchair */P.push(part(GB.box,0x3a4a4a,x,.55,z,0,rand(0,3),0,.5,.08,.5));P.push(part(GB.box,0x3a4a4a,x,.85,z-.22,0,0,0,.5,.6,.06));for(const s of[-1,1])P.push(part(GB.cyl,metal,x+s*.3,.35,z,0,0,Math.PI/2,.32,.04,.32));}
+        else{/* gurney */P.push(part(GB.box,sheet,x,.85,z,0,r()*.4,0,.7,.1,1.9));for(const a of[-1,1])for(const b of[-1,1])P.push(part(GB.box,metal,x+a*.3,.42,z+b*.85,0,0,0,.04,.84,.04));}}}}
+  for(const o of LV.rooms){if(o.j)continue;const c0=cellCenter(o.x,o.y);const cx=c0.x+(o.w*S)/2-S/2,cz=c0.z+S/2;
+    if(o.door){const dc=cellCenter(o.door[0],o.door[1]);const sd=o.side;
+      for(const k of[-1,1])P.push(part(GB.box,0x5a5a50,dc.x+k*1.6,1.3,dc.z,0,0,0,.25,2.6,S-.2));P.push(part(GB.box,0x5a5a50,dc.x,2.7,dc.z,0,0,0,3.5,.3,S-.2));
+      P.push(part(GB.box,jc(0x7a8270,.08),dc.x+1.0,1.25,dc.z-sd*1.4,0,r()<.5?.9:1.4,0,1.2,2.4,.08));P.push(part(GB.box,0x202020,dc.x+1.0,1.8,dc.z-sd*1.42,0,0,0,.3,.2,.02));}
+    const bed=(x,z,ry)=>{const s=Math.sin(ry),co=Math.cos(ry);P.push(part(GB.box,sheet,x,.62,z,0,ry,0,.9,.18,1.9));P.push(part(GB.box,0xc8c0b0,x+s*.75,.76,z+co*.75,0,ry,0,.6,.12,.3));for(const a of[-1,1])for(const b of[-1,1])P.push(part(GB.box,rust,x+a*.42*co+b*.9*s,.3,z-a*.42*s+b*.9*co,0,ry,0,.05,.6,.05));P.push(part(GB.box,rust,x+s*.95,.7,z+co*.95,0,ry,0,.9,.6,.05));};
+    if(o===LV.exitRoom)continue;
+    if(o.kind==='ward'){for(let k=0;k<4;k++)bed(c0.x+k*S*1.1,cz+(o.side<0?-1:1)*1.2,0);for(let k=0;k<3;k++){const x=c0.x+k*S*1.1+S*.55;P.push(part(GB.box,metal,x,1,cz,0,0,0,.04,2,.04));GL.push(part(GB.box,0xb8e0ff,x,1.9,cz,0,0,0,.18,.28,.06));}}
+    else if(o.kind==='cell'){bed(cx+rand(-1,1),cz+rand(-1,1),r()<.5?0:Math.PI/2);P.push(part(GB.cyl,0x6a6a60,cx+2.4,.25,cz-2.4,0,0,0,.25,.5,.25));if(r()<.5)P.push(part(GB.box,0x6a5a44,cx-2,.45,cz+2,1.2,r()*3,0,.5,.9,.5));}
+    else if(o.kind==='padded'){for(let k=0;k<16;k++){const a=k/16*6.283;const x=cx+Math.cos(a)*3.6,z=cz+Math.sin(a)*3.6;if(isWall(x,z)||!isWall(x+Math.cos(a)*.6,z+Math.sin(a)*.6))continue;for(let y=0;y<3;y++)P.push(part(GB.box,jc(0xe8e4d8,.04),x,.7+y*1.15,z,0,-a+Math.PI/2,0,1.3,1.05,.3));}
+      P.push(part(GB.box,0xd8d0bc,cx,.25,cz,0,r()*3,0,.6,.5,1.2));}
+    else if(o.kind==='office'){P.push(part(GB.box,0x5a4630,cx,.75,cz,0,0,0,2,.08,1));for(const a of[-1,1])P.push(part(GB.box,0x4a3a28,cx+a*.9,.37,cz,0,0,0,.08,.74,.9));P.push(part(GB.box,0x6a6e6a,cx+2.4,1,cz-2.2,0,0,0,.8,2,.7));
+      for(let k=0;k<14;k++)P.push(part(GB.box,0xe8e4d4,cx+rand(-2.5,2.5),.02,cz+rand(-2.5,2.5),0,rand(0,3),0,.3,.01,.4));P.push(part(GB.box,0x2a2a28,cx+.3,.85,cz,0,.3,0,.4,.14,.3));}
+    else if(o.kind==='bath'){P.push(part(GB.box,0xd8d8d0,cx,.45,cz,0,0,0,1,.9,2));P.push(part(GB.box,0x2a3a30,cx,.86,cz,0,0,0,.8,.04,1.8));P.push(part(GB.box,rust,cx,1.6,cz-1.1,0,0,0,.1,.5,.1));}
+    if(lights<7&&r()<.35){const l=ugLight(cx,WH-.6,cz,0xdfe8c8,.9,11,null,'blink');GL.push(part(GB.ico,0xfff8d0,cx,WH-.4,cz,0,0,0,.15,.2,.15));lights++;}}
+  const sc=shared(scrawlTex());const DS=[];ugFaces((i,j,a,b)=>{if(r()>.07)return;const c=cellCenter(i,j);DS.push({x:c.x+a*(S/2-.02),z:c.z+b*(S/2-.02),ry:Math.atan2(-a,-b),k:randi(0,7)});});
+  DS.slice(0,40).forEach(d=>{const geo=new THREE.PlaneGeometry(2.4,.9);const u=geo.attributes.uv;const u0=(d.k%2)*.5,v0=1-(Math.floor(d.k/2)+1)*.25;for(let n=0;n<u.count;n++)u.setXY(n,u0+u.getX(n)*.5,v0+u.getY(n)*.25);
+    const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:sc,transparent:true,depthWrite:false}));m.position.set(d.x,rand(1.3,2.3),d.z);m.rotation.y=d.ry;world.add(m);});
+  ugMesh(P);ugMesh(GL,GLOW_MAT);}
+
+function dressLevel(ch){if(ch===1)dressCatacombs();else if(ch===2)dressMines();else if(ch===3)dressFungal();else dressAsylum();}
+function genUnderground(ch,lv,seed){return ch===1?genCatacombs(lv,seed):ch===2?genMines(lv,seed):ch===3?genFungal(lv,seed):genAsylum(lv,seed);}
 /* ---------- people & monsters ---------- */
 function makeHuman(shirt,skin,pants,o={}){const g=new THREE.Group();const mS=M(skin),mC=M(shirt),mP=M(pants);
   box(.62,.8,.36,mC,0,1.2,0,g);box(.46,.46,.46,mS,0,1.86,0,g);
@@ -834,14 +1125,19 @@ function modelAxe(){const g=new THREE.Group();const h=new THREE.Mesh(new THREE.C
 function modelPick(){const g=new THREE.Group();const h=new THREE.Mesh(new THREE.CylinderGeometry(.025,.03,.64,6),vWood);h.position.y=.1;g.add(h);const a=box(.24,.06,.06,vStone,-.1,.37,0,g);a.rotation.z=.28;const b=box(.24,.06,.06,vStone,.1,.37,0,g);b.rotation.z=-.28;box(.07,.08,.08,vFiber,0,.38,0,g);return g;}
 function modelBow(){const g=new THREE.Group();box(.07,.08,.62,vWood,0,0,0,g);const arc=new THREE.Mesh(new THREE.TorusGeometry(.26,.018,5,14,Math.PI),vIron);arc.rotation.x=-Math.PI/2;arc.position.z=-.2;g.add(arc);box(.52,.006,.006,M(0xe0d8c0),0,0,-.2,g);box(.02,.02,.4,vMetal,0,.05,-.25,g);return g;}
 function modelStaff(){const g=new THREE.Group();const s=new THREE.Mesh(new THREE.CylinderGeometry(.025,.032,1,6),vWood);g.add(s);const c=new THREE.Mesh(new THREE.OctahedronGeometry(.09,0),crystalM);c.position.y=.56;g.add(c);g.userData.c=c;return g;}
+/* a hardwood sword edged with chipped stone, like the old jungle macuahuitl */
+function modelSword(){const g=new THREE.Group();box(.05,.2,.05,vFiber,0,-.02,0,g);box(.2,.04,.07,vWood,0,.1,0,g);box(.1,.62,.025,vWood,0,.43,0,g);const tip=box(.07,.07,.025,vWood,0,.75,0,g);tip.rotation.z=Math.PI/4;
+  for(let k=0;k<6;k++)for(const s of[-1,1]){const c=box(.045,.06,.02,vStone,s*.065,.18+k*.1,0,g);c.rotation.z=s*.5;}return g;}
+/* the M1911 every survivor carried off the ship */
+function modelPistol(){const g=new THREE.Group();const gun=M(0x5a5e62,{metalness:.5,roughness:.45});shared(gun);box(.07,.08,.34,gun,0,.05,-.08,g);box(.065,.04,.3,gun,0,0,-.06,g);const gr=box(.06,.2,.09,M(0x5a3a22),0,-.1,.04,g);gr.rotation.x=.25;box(.012,.02,.02,gun,0,.1,-.24,g);return g;}
 const vHands=new THREE.Group();box(.05,.05,.12,vSkin,.06,-.1,-.06,vHands);
-const vAxe=modelAxe(),vPick=modelPick(),vBow=modelBow(),vStaff=modelStaff();vStaff.rotation.set(-.35,0,-.2);
-vm.add(vHands,vAxe,vPick,vBow,vStaff);
+const vAxe=modelAxe(),vPick=modelPick(),vBow=modelBow(),vStaff=modelStaff(),vSword=modelSword(),vPistol=modelPistol();vStaff.rotation.set(-.35,0,-.2);
+vm.add(vHands,vAxe,vPick,vBow,vStaff,vSword,vPistol);vPistol.position.set(-.02,.06,.02);vPistol.scale.setScalar(.8);vSword.scale.setScalar(.72);vSword.position.set(-.04,-.02,0);
 function updateVM(dt){P.swing=Math.max(0,P.swing-dt*3.2);P.recoil=Math.max(0,P.recoil-dt*5);const w=G.weapon;
-  vHands.visible=w<0;vAxe.visible=w===0;vPick.visible=w===1;vBow.visible=w===2;vStaff.visible=w===3;
+  vHands.visible=w<0;vAxe.visible=w===0;vPick.visible=w===1;vBow.visible=w===2;vStaff.visible=w===3;vSword.visible=w===4;vPistol.visible=w===5;
   const b=P.moving&&P.onGround?1:0;const bx=Math.sin(P.bob)*.018*b,by=Math.abs(Math.cos(P.bob))*.022*b;const sw=Math.sin(P.swing*Math.PI);
   vm.position.set(.26+bx-sw*.05,-.24-by-sw*.03,-.5+P.recoil*.06);
-  vAxe.rotation.set(.25-sw*1.6,0,-.25);vPick.rotation.set(.25-sw*1.6,0,-.25);vHands.position.set(0,0,-sw*.25);vBow.rotation.set(P.recoil*.2,0,0);
+  vAxe.rotation.set(.25-sw*1.6,0,-.25);vPick.rotation.set(.25-sw*1.6,0,-.25);vHands.position.set(0,0,-sw*.25);vBow.rotation.set(P.recoil*.2,0,0);vSword.rotation.set(.1-sw*1.5,sw*.4,.32+sw*.5);vPistol.rotation.set(P.recoil*.5,0,0);
   vStaff.userData.c.scale.setScalar(.7+G.energy/100*.5+Math.sin(T*6)*.05);}
 
 /* ---------- player ---------- */
@@ -876,20 +1172,22 @@ function heal(n){G.hp=Math.min(G.maxHp,G.hp+n);}
 function dmgMul(){return(1+G.dmgBonus)*(G.mode==='island'?1:1+(G.chapter-1)*.22);}
 
 /* ---------- weapons ---------- */
-const boltGeo=shared(new THREE.BoxGeometry(.04,.04,.55)),boltMat=shared(M(0xd8c090));
+const boltGeo=shared(new THREE.BoxGeometry(.04,.04,.55)),boltMat=shared(M(0xd8c090)),bulletMat=shared(new THREE.MeshBasicMaterial({color:0xffe090}));
 const orbGeo=shared(new THREE.IcosahedronGeometry(.18,1)),orbMat=shared(new THREE.MeshBasicMaterial({color:0x6ff0dc}));
 const boneGeo=shared(new THREE.BoxGeometry(.06,.06,.4)),boneMat=shared(new THREE.MeshBasicMaterial({color:0xe8e0c8}));
 const bOrbGeo=shared(new THREE.IcosahedronGeometry(.32,1)),bOrbMat=shared(new THREE.MeshBasicMaterial({color:0xff5a2a})),hOrbMat=shared(new THREE.MeshBasicMaterial({color:0xff2a8a}));
 const _dir=new V3();
-const WNAME=['Axe','Pickaxe','Crossbow','Rune Staff'];
-function selectWeapon(i){if(!G.tools[TOOL_KEYS[i]]){toast(i===3?'You have not found a Rune Staff yet':`You have no ${WNAME[i].toLowerCase()} yet — press C to craft one`,'w');return;}G.weapon=i;}
-function cycleWeapon(dir=1){const owned=[0,1,2,3].filter(i=>G.tools[TOOL_KEYS[i]]);if(!owned.length){G.weapon=-1;return;}const k=owned.indexOf(G.weapon);G.weapon=owned[(k+dir+owned.length)%owned.length];}
-const toolOf=()=>G.weapon===0?'axe':G.weapon===1?'pick':'hands';
+const WNAME=['Axe','Pickaxe','Crossbow','Rune Staff','Sword','Pistol'];
+function selectWeapon(i){if(!G.tools[TOOL_KEYS[i]]){toast(i===5?'Your pistol is gone':i===3?'You have not found a Rune Staff yet':`You have no ${WNAME[i].toLowerCase()} yet — press C to craft one`,'w');return;}G.weapon=i;}
+function cycleWeapon(dir=1){const owned=KEY_W.filter(i=>G.tools[TOOL_KEYS[i]]);if(!owned.length){G.weapon=-1;return;}const k=owned.indexOf(G.weapon);G.weapon=owned[(k+dir+owned.length)%owned.length];}
+const toolOf=()=>G.weapon===0?'axe':G.weapon===1?'pick':G.weapon===4?'sword':'hands';
 function attack(){const w=G.weapon;
-  if(w<=1){P.cd=w<0?.35:.45;P.swing=1;SFX.swing();if(G.mode==='island')meleeIsland(toolOf());else meleeDungeon(toolOf());}
+  if(w===5){if(G.ammo<=0){P.cd=.45;tone(1800,.03,'square',.06);toast('Click. Out of ammo. The pistol is useless now','noammo',2200);return;}G.ammo--;P.cd=.32;P.recoil=1;fireProj('bullet');noise(.16,.4,2400,'bandpass',0,.8);tone(140,.1,'square',.12,60);if(G.ammo===0)setTimeout(()=>toast('That was your last round','noammo',2600),300);return;}
+  if(w<=1||w===4){P.cd=w<0?.35:w===4?.36:.45;P.swing=1;SFX.swing();if(w===4)noise(.12,.16,4200,'highpass');if(G.mode==='island')meleeIsland(toolOf());else meleeDungeon(toolOf());}
   else if(w===2){if(G.inv.bolts<=0){toast('Out of bolts — craft more with C (2 wood + 1 stone)','nobolt');P.cd=.5;return;}G.inv.bolts--;P.cd=.75;P.recoil=1;fireProj('bolt');SFX.shoot();}
   else{if(G.energy<18){P.cd=.15;return;}G.energy-=18;P.cd=.3;P.recoil=1;fireProj('orb');SFX.zap();}}
 function fireProj(kind){camera.getWorldDirection(_dir);const o=camera.position.clone().addScaledVector(_dir,.5);o.y-=.12;
+  if(kind==='bullet'){const mesh=new THREE.Mesh(boltGeo,bulletMat);mesh.scale.set(.6,.6,1.4);mesh.position.copy(o);mesh.lookAt(o.clone().add(_dir));world.add(mesh);projs.push({mesh,pos:o,vel:_dir.clone().multiplyScalar(75),dmg:20*dmgMul(),r:.14,splash:0,life:.9,enemy:false});return;}
   const bolt=kind==='bolt';const mesh=new THREE.Mesh(bolt?boltGeo:orbGeo,bolt?boltMat:orbMat);mesh.position.copy(o);mesh.lookAt(o.clone().add(_dir));world.add(mesh);
   projs.push({mesh,pos:o,vel:_dir.clone().multiplyScalar(bolt?48:30),dmg:(bolt?30:22)*dmgMul(),r:bolt?.15:.25,splash:bolt?0:2.4,life:2.5,enemy:false});}
 function enemyShot(from,target,speed,dmg,kind){const dir=target.clone().sub(from).normalize();const orb=kind!=='bone';
@@ -901,29 +1199,29 @@ function meleeIsland(tool){const f=fwd();let best=null,bd=1e9;
   const check=(o,r,kind,reach=2.3)=>{const dx=o.x-P.pos.x,dz=o.z-P.pos.z,d=Math.hypot(dx,dz);if(d-r>reach)return;const dot=(dx*f.x+dz*f.z)/(d||1);if(dot<.45&&d>r+.4)return;if(d-r<bd){bd=d-r;best={o,kind};}};
   foes.forEach(e=>!e.dead&&check(e,.5*e.sc,'foe',2.6));ibosses.forEach(b=>!b.dead&&b.active&&check(b.hit,b.hit.r,'iboss',2.8));
   if(!G.aboard){trees.forEach(t=>{if(!t.down&&Math.abs(t.x-P.pos.x)<5&&Math.abs(t.z-P.pos.z)<5)check(t,t.r,'tree');});rocks.forEach(r=>check(r,r.r,'rock'));boars.forEach(b=>!b.dead&&check(b,.6,'boar'));}
-  if(!best)return;const o=best.o;const base=tool==='axe'?16:tool==='pick'?14:7;
+  if(!best)return;const o=best.o;const base=tool==='sword'?26:tool==='axe'?16:tool==='pick'?14:7;
   if(best.kind==='foe'){const dx=o.x-P.pos.x,dz=o.z-P.pos.z,d=Math.hypot(dx,dz)||1;hurtFoe(o,base*dmgMul(),{x:dx/d,z:dz/d});return;}
   if(best.kind==='iboss'){hitIBoss(o.boss,base*dmgMul());return;}
-  if(best.kind==='tree'){if(tool!=='axe'){o.shake=.15;needTool(G.tools.axe?'Switch to your axe (1) to chop trees':'You need a stone axe to chop trees — press C');return;}
+  if(best.kind==='tree'){if(tool!=='axe'){o.shake=.15;needTool(G.tools.axe?'Switch to your axe (2) to chop trees':'You need a stone axe to chop trees — press C');return;}
     o.hp--;o.shake=.3;SFX.chop();burst(new V3(o.x,islandH(o.x,o.z)+1.4,o.z),0xb08850,5);gain('wood',1);if(o.kind==='palm')gain('leaf',2);
-    if(o.hp<=0){o.down=true;setTreeM(o,0,0);const m=new THREE.Mesh(TV[o.kind][o.v].geo,JMAT);m.position.set(o.x,o.y,o.z);m.rotation.order='YXZ';m.rotation.y=o.ry;m.scale.setScalar(o.s);world.add(m);fallingTrees.push({m,t:0});
+    if(o.hp<=0){o.down=true;setTreeM(o,0,0);const m=new THREE.Mesh(TV[o.kind][o.v].geo,JMAT);m.position.set(o.x,o.y,o.z);m.rotation.order='YXZ';m.rotation.y=o.ry;m.scale.setScalar(o.s);world.add(m);o.shake=0;fallingTrees.push({m,t:0,dir:Math.random()<.5?-1:1});
       gain('wood',o.kind==='kapok'?3:2);if(o.kind==='palm')gain('leaf',2);if(Math.random()<.6)gain('stick',1);removeCollider(o);}}
-  else if(best.kind==='rock'){if(tool!=='pick'){needTool(G.tools.pick?'Switch to your pickaxe (2) to mine stone':'You need a stone pickaxe to mine boulders — press C');return;}
+  else if(best.kind==='rock'){if(tool!=='pick'){needTool(G.tools.pick?'Switch to your pickaxe (3) to mine stone':'You need a stone pickaxe to mine boulders — press C');return;}
     o.hp--;SFX.mine();burst(new V3(o.x,islandH(o.x,o.z)+1,o.z),0xb0b0a0,6);gain('stone',1);
     if(o.hp<=0){gain('stone',1);world.remove(o.g);rocks=rocks.filter(r=>r!==o);removeCollider(o);}}
-  else hurtBoar(o,tool==='axe'?14:tool==='pick'?12:6);}
+  else hurtBoar(o,tool==='sword'?24:tool==='axe'?14:tool==='pick'?12:6);}
 function hurtBoar(b,dmg){b.hp-=dmg;b.flee=6;SFX.hit();burst(new V3(b.x,islandH(b.x,b.z)+.7,b.z),0x9a2020,6);
   if(b.hp<=0&&!b.dead){b.dead=true;b.t=0;gain('meat',2);G.huntedBoar=true;}}
 function meleeDungeon(tool){const f=fwd();
   if(LV&&LV.obs){for(const dd of[1.0,1.8,2.6]){const x=P.pos.x+f.x*dd,z=P.pos.z+f.z*dd;const v=cellVal(x,z);if(v===3||v===4){const i=Math.floor(x/S),j=Math.floor(z/S);const o=LV.obs.find(o=>o.i===i&&o.j===j&&!o.done);if(o){hitObstacle(o,tool);return;}}}}
-  let hit=false;const base=tool==='axe'?16:tool==='pick'?14:7;
+  let hit=false;const base=tool==='sword'?26:tool==='axe'?16:tool==='pick'?14:7;
   for(const e of enemies){if(e.dead||e.rise>0)continue;const dx=e.x-P.pos.x,dz=e.z-P.pos.z,d=Math.hypot(dx,dz);if(d>2.5+e.sc*.3)continue;if((dx*f.x+dz*f.z)/(d||1)<.5)continue;hurtEnemy(e,base*dmgMul(),{x:dx/(d||1),z:dz/(d||1)});hit=true;}if(hit)G.shake=Math.max(G.shake,.08);}
 function hitObstacle(o,tool){const need=o.type===3?'pick':'axe';
-  if(tool!==need){needTool(o.type===3?'Rubble — break it with the pickaxe (2)':'Roots — cut them with the axe (1)');o.shake=.15;return;}
+  if(tool!==need){needTool(o.type===3?'Rubble — break it with the pickaxe (3)':'Roots — cut them with the axe (2)');o.shake=.15;return;}
   o.hp--;o.shake=.3;const c=cellCenter(o.i,o.j);if(need==='pick')SFX.mine();else SFX.chop();burst(new V3(c.x,1.4,c.z),o.type===3?0x9a9486:0x7a5a36,8,4);G.shake=Math.max(G.shake,.1);
   if(o.hp<=0){o.done=true;LV.grid[o.j][o.i]=0;world.remove(o.mesh);disposeObj(o.mesh);burst(new V3(c.x,1,c.z),o.type===3?0x9a9486:0x5a4228,22,6,2);SFX.thud();LV.fx=-1;toast(o.type===3?'The rubble gives way':'The roots snap apart','obs',1800);}}
 function updateWeapons(dt){P.cd-=dt;if(G.tools.staff)G.energy=Math.min(100,G.energy+20*dt);if(P.fire&&P.cd<=0)attack();}
-function hitsWorld(p){if(G.mode==='island')return p.y<islandH(p.x,p.z)||p.y<-.3;return isWall(p.x,p.z)||p.y<.02||p.y>WALLH;}
+function hitsWorld(p){if(G.mode==='island')return p.y<islandH(p.x,p.z)||p.y<-.3;return isWall(p.x,p.z)||p.y<.02||p.y>((LV&&LV.wallH)||WALLH);}
 function hitsPlayer(p,r){const dx=p.x-P.pos.x,dz=p.z-P.pos.z;return dx*dx+dz*dz<(.45+r)*(.45+r)&&p.y>P.pos.y-r&&p.y<P.pos.y+1.9;}
 function splash(p){burst(p.pos,0x6ff0dc,10,5);for(const e of enemies){if(e.dead||e.rise>0)continue;const d=Math.hypot(e.x-p.pos.x,e.z-p.pos.z);if(d<p.splash)hurtEnemy(e,p.dmg*.5,null,true);}}
 const _tv=new V3();
@@ -946,6 +1244,7 @@ const RECIPES=[
   {id:'axe',name:'Stone Axe',desc:'Chops trees for wood and cuts through roots.',cost:{stick:3,stone:2,fiber:2},tool:'axe',slot:0},
   {id:'pick',name:'Stone Pickaxe',desc:'Mines boulders for stone and breaks through rubble.',cost:{stick:3,stone:3,fiber:2},tool:'pick',slot:1},
   {id:'bow',name:'Crossbow',desc:'Fires bolts. Hunts boar from a distance.',cost:{wood:6,stone:2,fiber:4},tool:'bow',slot:2},
+  {id:'sword',name:'Hardwood Sword',desc:'A heavy blade edged with chipped stone. The fastest, hardest-hitting melee weapon, but it will not chop or mine.',cost:{wood:4,stone:4,fiber:3},tool:'sword',slot:4},
   {id:'bolts',name:'Bolts ×5',desc:'Ammunition for the crossbow.',cost:{wood:2,stone:1}},
 ];
 const canAfford=c=>Object.entries(c).every(([k,v])=>G.inv[k]>=v);
@@ -956,7 +1255,7 @@ function renderCraft(){const have=['stick','stone','fiber','wood','bolts'].map(k
     const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=owned?'Made':'Craft';b.disabled=owned||!ok;b.id='craft-'+rc.id;b.onclick=()=>doCraft(rc);
     const chips=document.createElement('div');chips.className='chips';Object.entries(rc.cost).forEach(([k,v])=>{const c=document.createElement('span');c.className='chip '+(G.inv[k]>=v?'ok':'low');c.textContent=`${Math.min(G.inv[k],v)}/${v} ${LABEL[k]}`;chips.appendChild(c);});
     row.append(info,b,chips);box.appendChild(row);})
-  if(!$('#craftNote')){const note=document.createElement('p');note.id='craftNote';note.className='have';note.style.margin='0';note.textContent='Built on site with E: camp (10 palm leaves, 6 wood) and campfire (18 wood, 10 stones) at the beach clearing · boat at the landing (16 wood) · camp repairs (7 vines, 2 sticks).';box.after(note);}}
+  if(!$('#craftNote')){const note=document.createElement('p');note.id='craftNote';note.className='have';note.style.margin='0';note.textContent='Built on site with E: camp (10 palm leaves, 6 wood) and campfire (18 wood, 10 stones) at the beach clearing · landing (10 wood, 6 sticks, 4 vines) and then a boat (16 wood) on the beach east of camp · camp repairs (7 vines, 2 sticks).';box.after(note);}}
 function doCraft(rc){if(!canAfford(rc.cost)||(rc.tool&&G.tools[rc.tool]))return;Object.entries(rc.cost).forEach(([k,v])=>G.inv[k]-=v);
   if(rc.tool){G.tools[rc.tool]=true;G.weapon=rc.slot;SFX.unlock();toast(`Crafted: ${rc.name}`,'craftok');if(rc.tool==='bow'&&G.inv.bolts<6)G.inv.bolts+=6;}else{G.inv.bolts+=5;SFX.pickup();}renderCraft();}
 function openCraft(){if(!playing()||G.mode==='boat')return;G.crafting=true;P.fire=false;for(const k in keys)keys[k]=false;unlock();renderCraft();$('#craft').hidden=false;$('#hud').style.visibility='hidden';setTimeout(()=>{const b=$('#recipes .btn:not(:disabled)')||$('#craftClose');b.focus();},30);}
@@ -964,7 +1263,7 @@ function closeCraft(){if(!G.crafting)return;G.crafting=false;$('#craft').hidden=
 $('#craftClose').onclick=closeCraft;
 
 /* ---------- island update ---------- */
-const COST={camp:{leaf:10,wood:6},repair:{fiber:7,stick:2},fire:{wood:18,stone:10},boat:{wood:16}};
+const COST={camp:{leaf:10,wood:6},repair:{fiber:7,stick:2},fire:{wood:18,stone:10},dock:{wood:10,stick:6,fiber:4},boat:{wood:16}};
 const has=c=>Object.entries(c).every(([k,v])=>G.inv[k]>=v);
 const spend=c=>Object.entries(c).forEach(([k,v])=>G.inv[k]-=v);
 const costText=c=>Object.entries(c).map(([k,v])=>`${Math.min(G.inv[k],v)}/${v} ${LABEL[k]}`).join(', ');
@@ -984,40 +1283,55 @@ function islandObjective(){const I=G.inv,t=G.tools;
   if(G.story===1){
     if(!G.fireLit)return`Build a campfire at camp: ${costText(COST.fire)}`;
     if(!t.pick)return'Craft a stone pickaxe (3 sticks, 3 stone, 2 vines) to mine boulders';
+    if(!G.dockBuilt&&G.salvaged<4)return`Build a landing on the beach east of camp: ${costText(COST.dock)}. You will need it to launch a boat`;
     if(!G.boatBuilt&&G.salvaged<4)return`Build a boat at the landing to reach the wreck: ${costText(COST.boat)}. The sea is too deep to swim`;
     if(G.salvaged<4)return`Row out to the wreck and salvage its cargo (${G.salvaged}/4 crates)`;
     if(!t.bow)return'Craft a crossbow (6 wood, 2 stone, 4 vines)';
     if(!G.huntedBoar)return'Hunt a wild boar for meat';
     return night()?'Sleep in your tent. Tomorrow will be harder':'Stock up on food, wood and bolts';}
-  if(G.story===2)return night()?'Sleep in your tent if the camp is safe':'Survive. Hostiles roam the island — keep your camp standing';
-  if(G.story===4){if(G.stairFound)return'Descend the stairway into the dark';if(G.day>=9)return'The natives are coming out of the trees. Find what they are guarding';
-    if(G.day>=7)return'Follow the carved stones into the deep western jungle';return`Explore the island's interior. Something is hidden deep in the jungle (Day ${G.day} of 10)`;}
+  if(G.story===2){if(!G.ev.bigfoot)return'Stock up for the long days ahead: mine stone on the northern hill, where the tall obelisk stands';
+    if(!G.ev.monster)return'Your vines are running low. The swamp in the east is thick with them';
+    return night()?'Sleep in your tent if the camp is safe':`Survive. Hostiles roam the island — keep your camp standing (Day ${G.day} of 10)`;}
+  if(G.story===4){if(G.ev.war)return G.stairFound?'Caught in the crossfire! Run for the stairway':'Caught in the crossfire! Follow the carved stones west and get underground';
+    if(G.stairFound)return'Go down the stairway when you are ready — or keep exploring while you can';
+    if(G.day>=13)return'Follow the carved stones into the deep western jungle';return`Explore the island's interior. Something is hidden deep in the jungle (Day ${G.day} of 15)`;}
   return'Survive';}
 function islandWaypoint(){
   if(G.aboard)return G.salvaged<4?{x:WRECK.x,z:WRECK.z,label:'Wreck'}:{x:DOCK.bx,z:DOCK.bz,label:'Landing'};
   if(G.campBuilt&&G.campHP<=0&&has(COST.repair))return{x:CAMP.x,z:CAMP.z,label:'Camp'};
   if(G.story===0){if(G.tools.axe&&!G.campBuilt&&has(COST.camp))return{x:CAMP.x,z:CAMP.z,label:'Camp site'};if(G.campBuilt&&night())return{x:CAMP.x,z:CAMP.z,label:'Camp'};}
-  if(G.story===1){if(!G.fireLit&&has(COST.fire))return{x:CAMP.x,z:CAMP.z,label:'Camp'};if(G.fireLit&&G.salvaged<4&&(G.boatBuilt||has(COST.boat)))return{x:DOCK.x,z:DOCK.z,label:'Landing'};}
-  if(G.story===4){if(G.stairFound)return{x:STAIR.x,z:STAIR.z+1.5,label:'Stairway'};if(G.day>=7){const m=MARKERS.find((m,i)=>!G.ev['mk'+i]);if(m)return{x:m.x,z:m.z,label:'Carved stones'};}}
+  if(G.story===1){if(!G.fireLit&&has(COST.fire))return{x:CAMP.x,z:CAMP.z,label:'Camp'};if(G.fireLit&&G.salvaged<4&&(G.boatBuilt||G.dockBuilt?has(COST.boat)||G.boatBuilt:has(COST.dock)))return{x:DOCK.x,z:DOCK.z,label:'Landing'};}
+  if(G.story===2){if(!G.ev.bigfoot)return{x:HILL.x,z:HILL.z+6,label:'Obelisk'};if(!G.ev.monster)return{x:SWAMP.x,z:SWAMP.z,label:'Swamp'};}
+  if(G.story===4){if(G.stairFound)return{x:STAIR.x,z:STAIR.z+1.5,label:'Stairway'};if(G.day>=13||G.ev.war){const m=MARKERS.find((m,i)=>!G.ev['mk'+i]);if(m)return{x:m.x,z:m.z,label:'Carved stones'};}}
   return null;}
 
 /* the calendar of what happens to the survivors */
+const EV=(id,day,hour,types,msg,from)=>({id,day,hour,fn:()=>{raid(types,from&&from());toast(msg,'raid',3400);}});
+const fromOutpost=()=>landPointNear(OUTPOST.x,OUTPOST.z,6,14);
 const EVENTS=[
-  {id:'dogs3',day:3,hour:10.5,fn:()=>{raid(['dog','dog','dog']);toast('Wild dogs are circling the camp!','raid',3000);}},
-  {id:'bigfoot',day:3,hour:13,fn:()=>cineBigfoot(spawnBigfoot())},
-  {id:'scouts3',day:3,hour:21,fn:()=>{raid(['scout','scout']);toast('Spears in the dark — someone is attacking the camp!','raid',3000);}},
-  {id:'soldiers4',day:4,hour:9,fn:()=>{raid(['soldier','soldier','soldier'],landPointNear(OUTPOST.x,OUTPOST.z,6,14));toast('Gunfire from the jungle! Soldiers are coming for the camp','raid',3600);}},
-  {id:'jag4',day:4,hour:12.5,fn:()=>{raid(['jaguar','jaguar']);toast('Jaguars are stalking the camp','raid',3000);}},
-  {id:'monster',day:4,hour:16,fn:()=>cineMonster(spawnMonster())},
-  ...[5,6,7,8,9].map(d=>({id:'night'+d,day:d,hour:21,fn:()=>{const set=[['dog','dog','dog'],['scout','scout','scout'],['jaguar','jaguar'],['soldier','soldier'],['scout','dog','dog']][d-5];raid(set);toast('Something is coming for the camp','raid',2800);}})),
+  EV('dogs3',3,10.5,['dog','dog','dog'],'Wild dogs are circling the camp!'),
+  EV('scouts3',3,21,['scout','scout'],'Spears in the dark — someone is attacking the camp!'),
+  EV('soldiers4',4,9,['soldier','soldier','soldier'],'Gunfire from the jungle! Soldiers are coming for the camp',fromOutpost),
+  EV('jag4',4,15,['jaguar','jaguar'],'Jaguars are stalking the camp'),
+  EV('night5',5,21,['dog','dog','dog','dog'],'Howling in the dark. The dogs are back'),
+  EV('patrol6',6,10,['officer','soldier','soldier'],'An officer with a sword is leading a patrol toward your camp',fromOutpost),
+  EV('night6',6,21,['scout','scout','scout'],'Spears in the dark again'),
+  EV('jag7',7,13,['jaguar','jaguar'],'Jaguars, two of them, hunting close to camp'),
+  EV('night7',7,21,['soldier','soldier'],'A night raid from the outpost!',fromOutpost),
+  EV('mix8',8,9,['scout','scout','dog','dog'],'The natives have set dogs on the camp'),
+  EV('night8',8,21,['native','scout','scout'],'War paint in the firelight. The natives are attacking'),
+  EV('patrol9',9,11,['officer','soldier','soldier','soldier'],'A full patrol is marching on the camp',fromOutpost),
+  EV('night9',9,21,['jaguar','dog','dog'],'Something is hunting around the tents'),
+  EV('mix10',10,10,['soldier','soldier','scout','scout'],'Soldiers from one side, spears from the other'),
+  ...[11,12,13,14].map((d,i)=>EV('night'+d,d,21,[['dog','dog','dog'],['scout','scout','scout'],['soldier','soldier'],['scout','native','dog']][i],'Something is coming for the camp',i===2?fromOutpost:null)),
 ];
 function eventDue(e){return G.day>e.day||(G.day===e.day&&G.hour>=e.hour);}
 function runEvents(){if(CINE||G.aboard||G.zw||G.overlay)return;
   if(G.story===0&&G.day>=2){setStory(1);return;}
   if(G.story===1&&eventDue({day:3,hour:8})){setStory(2);setTimeout(()=>toast('Something has changed. The jungle is no longer safe.','ch2',4200),1600);return;}
-  if(G.story===2&&(G.day>=5||eventDue({day:4,hour:23}))){cineZombies();return;}
-  if(G.story===4&&!G.stairFound&&eventDue({day:10,hour:8})){cineNatives();return;}
-  if(G.story===4&&G.stairFound&&eventDue({day:10,hour:8})&&!G.ev.nativesForce){G.ev.nativesForce=1;cineNatives();return;}
+  if(G.story===2&&(G.day>=11||eventDue({day:10,hour:23}))){cineZombies();return;}
+  if(G.story===4&&!G.ev.war&&eventDue({day:15,hour:8})){startWar();return;}
+  if(G.ev.war)return;
   if(ibosses.some(b=>b.active&&!b.dead&&b.kind!=='plesio'))return;
   if(G.story<2)return;
   for(const e of EVENTS){if(G.ev[e.id]||!eventDue(e))continue;G.ev[e.id]=1;if(e.day<G.day-0&&e.hour>=19&&G.day>e.day)continue;e.fn();return;}}
@@ -1026,11 +1340,12 @@ function runEvents(){if(CINE||G.aboard||G.zw||G.overlay)return;
 function buildCamp(){if(!has(COST.camp)){toast(`A camp needs ${costText(COST.camp)}`,'need');return;}spend(COST.camp);G.campBuilt=true;G.campHP=100;refreshCamp();SFX.unlock();banner('Camp built',G.names.length>1?`${G.names.length} tents, one for each survivor`:'A tent of palm leaves',2600);saveCheckpoint('island');}
 function repairCamp(){if(!has(COST.repair)){toast(`Repairs need ${costText(COST.repair)}`,'need');return;}spend(COST.repair);G.campHP=100;refreshCamp();SFX.unlock();toast('The camp is standing again','camp');}
 function buildFire(){if(!has(COST.fire)){toast(`A campfire needs ${costText(COST.fire)}`,'need');return;}spend(COST.fire);G.fireLit=true;refreshCamp();SFX.pickup();banner('Campfire','A warm light against the dark',2400);saveCheckpoint('island');}
+function buildDock(){if(!has(COST.dock)){toast(`A landing needs ${costText(COST.dock)}`,'need');return;}spend(COST.dock);G.dockBuilt=true;refreshCamp();SFX.unlock();SFX.chop();banner('Landing built','Now build a boat here',2400);saveCheckpoint('island');}
 function buildBoat(){if(!has(COST.boat)){toast(`A boat needs ${costText(COST.boat)}`,'need');return;}spend(COST.boat);G.boatBuilt=true;G.ev.boatMade=1;G.boatHP=100;refreshCamp();SFX.unlock();banner('Boat built','Board it at the landing',2400);saveCheckpoint('island');}
 function trySleep(){if(!night()){toast('You can only sleep after 19:00','sleep');return;}if(!G.campBuilt){toast('Build a camp first','sleep');return;}if(G.campHP<=0){toast('Your tents are wrecked. Repair the camp first','sleep');return;}
   if(Math.hypot(P.pos.x-CAMP.x,P.pos.z-CAMP.z)>8){toast('Sleep in your tent at camp','sleep');return;}
   if(hostilesNear(30)){toast('You cannot sleep with enemies nearby','sleep');return;}
-  if(G.story===2&&G.day>=4){toast('You lie down… and hear something groaning in the dark.','sleep',2600);cineZombies();return;}
+  if(G.story===2&&G.day>=10){toast('You lie down… and hear something groaning in the dark.','sleep',2600);cineZombies();return;}
   G.overlay=true;P.fire=false;fade(1,900,false).then(()=>{EVENTS.forEach(e=>{if(e.day===G.day&&e.hour>=19)G.ev[e.id]=1;});if(G.hour>=19)G.day++;G.hour=6;G.hp=G.maxHp;G.hunger=Math.max(25,G.hunger-12);
     while(boars.filter(b=>!b.dead).length<10)spawnBoar();ISL.bushes.forEach(b=>{if(!b.has){b.has=true;setBerries(b,true);}});foes.filter(f=>!f.raid).forEach(f=>f.hp=-1);
     saveCheckpoint('island');setTimeout(()=>{G.overlay=false;fade(0,1000);banner(`Day ${G.day}`,CH_SHORT[G.story===0&&G.day>=2?1:G.story]+' — '+CH_NAME[G.story===0&&G.day>=2?1:G.story],3000);},700);});}
@@ -1060,14 +1375,15 @@ const SALVAGE=[
 function salvage(){if(G.salvaged>=4)return;const pl=ibosses.find(x=>x.kind==='plesio'&&x.active&&!x.dead);if(pl){toast('The Plesiosaur will not let you near the wreck!','pl',2200);return;}
   const s=SALVAGE[G.salvaged];s.fn();if(ISL.crates[G.salvaged])ISL.crates[G.salvaged].visible=false;G.salvaged++;SFX.unlock();toast(`Salvaged: ${s.text}`,'salv',3200);if(G.salvaged>=4){banner('Wreck salvaged','Everything worth taking is yours',2400);saveCheckpoint('island');}}
 
-/* zombies on the night of Day 4 */
+/* zombies on the night of Day 10 */
 const WAVES=[{zombie:5,crawler:1},{zombie:6,crawler:3},{zombie:8,crawler:4}];
 function spawnWave(n){const w=WAVES[n-1];Object.entries(w).forEach(([t,c])=>{for(let i=0;i<c;i++){const p=landPointNear(P.pos.x,P.pos.z,12,26);spawnFoe(t,p.x,p.z,{wave:true,aware:true,rise:rand(.6,1.8)});}});banner(`Wave ${n} of 3`,'',1800);SFX.groan();setTimeout(SFX.groan,300);}
 function updateZombies(){if(!G.zw)return;if(foes.some(f=>f.wave&&!f.dead))return;if(G.zw.wave<3){G.zw.wave++;spawnWave(G.zw.wave);return;}
-  G.zw=null;G.overlay=true;P.fire=false;fade(1,1400,false).then(()=>{G.day=5;G.hour=6;G.hp=G.maxHp;G.hunger=Math.max(G.hunger,60);G.story=4;applySky(6);setTimeout(()=>{G.overlay=false;fade(0,1400);banner(CH_SHORT[4],CH_NAME[4],3800);setTimeout(()=>toast('The dead came out of the ground. Whatever is buried on this island, it is close.','ch4',5200),2000);saveCheckpoint('island');},800);});}
+  G.zw=null;G.overlay=true;P.fire=false;fade(1,1400,false).then(()=>{G.day=11;G.hour=6;G.hp=G.maxHp;G.hunger=Math.max(G.hunger,60);G.story=4;applySky(6);setTimeout(()=>{G.overlay=false;fade(0,1400);banner(CH_SHORT[4],CH_NAME[4],3800);setTimeout(()=>toast('The dead came out of the ground. Whatever is buried on this island, it is close.','ch4',5200),2000);saveCheckpoint('island');},800);});}
 
 /* roaming hostiles, and the natives who watch from the trees */
 function roam(dt){G.roamT=(G.roamT||8)-dt;if(G.roamT>0)return;G.roamT=rand(14,24);
+  if(G.ev.war)return;
   if(G.story>=2&&G.story!==3){const beasts=foes.filter(f=>!f.raid&&!f.wave&&(f.type==='jaguar'||f.type==='dog')).length;
     if(beasts<4){const a=rand(0,6.283),d=rand(50,85);const x=P.pos.x+Math.cos(a)*d,z=P.pos.z+Math.sin(a)*d;if(islandH(x,z)>2.5&&slopeAt(x,z)<.8&&Math.hypot(x-CAMP.x,z-CAMP.z)>30){if(Math.random()<.5)spawnFoe('jaguar',x,z);else['dog','dog','dog'].forEach(t=>spawnFoe(t,x+rand(-3,3),z+rand(-3,3)));}}
     const sold=foes.filter(f=>!f.raid&&f.type==='soldier').length;if(sold<3&&Math.hypot(P.pos.x-OUTPOST.x,P.pos.z-OUTPOST.z)>40){const p=landPointNear(OUTPOST.x,OUTPOST.z,4,14);spawnFoe('soldier',p.x,p.z);}}
@@ -1079,12 +1395,18 @@ function updateIslandSlams(dt){for(let i=slams.length-1;i>=0;i--){const s=slams[
 function updateIsland(dt){
   if(!G.zw){G.hour+=dt/HOUR_SEC;if(G.hour>=24){G.hour-=24;G.day++;banner(`Day ${G.day}`,CH_SHORT[G.story]+' — '+CH_NAME[G.story],2600);}}
   runEvents();if(CINE)return;
-  if(G.story>=4&&!G.stairFound&&!G.discovering&&G.day>=5&&!G.aboard&&Math.hypot(P.pos.x-STAIR.x,P.pos.z-STAIR.z+2.6)<12){cineDiscovery();return;}
+  if(G.story>=4&&!G.stairFound&&!G.discovering&&!G.aboard&&Math.hypot(P.pos.x-STAIR.x,P.pos.z-STAIR.z+2.6)<12){if(G.ev.war){G.stairFound=true;if(ISL.stair)ISL.stair.userData.cover.visible=false;SFX.unlock();toast('A stairway under the leaves! Get down there!','found',3200);}else{cineDiscovery();return;}}
+  if((G.story===2||G.story===4)&&!G.ev.war&&!G.aboard&&!G.zw){
+    if(!G.ev.bigfoot&&Math.hypot(P.pos.x-HILL.x,P.pos.z-HILL.z)<15){G.ev.bigfoot=1;cineBigfoot(spawnBigfoot());return;}
+    if(!G.ev.monster&&Math.hypot(P.pos.x-SWAMP.x,P.pos.z-SWAMP.z)<22&&islandH(P.pos.x,P.pos.z)<2.2){G.ev.monster=1;cineMonster(spawnMonster());return;}}
+  if(!G.ev.pistolNote&&G.tools.pistol){G.ev.pistolNote=1;setTimeout(()=>toast(`You still have your .45 pistol: ${G.ammo} rounds and no way to get more. Make them count.`,'pistol',5200),2500);}
+  updateWar(dt);
+  if(ISL.obelisk&&G.ev.bigfoot&&!ISL.obelisk.lit)ISL.obelisk.glow(1);
   G.hunger=Math.max(0,G.hunger-dt/HOUR_SEC*2.6);
   if(G.hunger<=0){G.hp-=1.5*dt;if(G.hp<=0)die();}else if(G.hunger>50&&G.hp<G.maxHp)G.hp=Math.min(G.maxHp,G.hp+(G.fireLit&&Math.hypot(P.pos.x-CAMP.x,P.pos.z-CAMP.z)<8?1.5:.5)*dt);
   if(!G.aboard){if(islandH(P.pos.x,P.pos.z)<SWIM_Y+.2){G.breath-=dt*100/8;if(G.breath<=20&&!G.ev.drownNote){G.ev.drownNote=1;toast('You are drowning! Get back to shore','drown',2400);}if(G.breath<=0){G.breath=0;die('drown');return;}}else{G.breath=Math.min(100,G.breath+dt*50);G.ev.drownNote=0;}}
   applySky(G.hour);
-  for(const t of trees){if(t.shake>0){t.shake-=dt;setTreeM(t,t.shake>0?Math.sin(t.shake*40)*.04:0);}}
+  for(const t of trees){if(t.shake>0&&!t.down){t.shake-=dt;setTreeM(t,t.shake>0?Math.sin(t.shake*40)*.04:0);}}
   for(let i=fallingTrees.length-1;i>=0;i--){const f=fallingTrees[i];f.t+=dt;f.m.rotation.x=Math.min(Math.PI/2,f.t*f.t*2.5);if(f.t>2.6){world.remove(f.m);fallingTrees.splice(i,1);}}
   for(const b of ISL.bushes){if(!b.has){b.t-=dt;if(b.t<=0){b.has=true;setBerries(b,true);}}}
   for(const it of ISL.gather){if(!it.has){it.t-=dt;if(it.t<=0&&Math.hypot(it.x-P.pos.x,it.z-P.pos.z)>12){it.has=true;setInst(it,1);}}}
@@ -1111,7 +1433,8 @@ function updateIsland(dt){
       else if(G.campHP<=0)pr={text:has(COST.repair)?`${K} — Repair the camp (7 vines, 2 sticks)`:`Camp wrecked — repair needs ${costText(COST.repair)}`,act:has(COST.repair)?repairCamp:null};
       else if(!G.fireLit&&G.story>=1&&dc<4)pr={text:has(COST.fire)?`${K} — Build a campfire (18 wood, 10 stones)`:`Campfire — needs ${costText(COST.fire)}`,act:has(COST.fire)?buildFire:null};
       else if(night())pr={text:`${isTouch?'Use':'Z'} — Sleep in your tent`,act:trySleep};}
-    if(!pr&&Math.hypot(P.pos.x-DOCK.x,P.pos.z-DOCK.z)<6){if(!G.boatBuilt)pr={text:has(COST.boat)?`${K} — Build a boat (16 wood)`:`Boat landing — a boat needs ${costText(COST.boat)}`,act:has(COST.boat)?buildBoat:null};else pr={text:`${K} — Board the boat`,act:boardBoat};}
+    if(!pr&&Math.hypot(P.pos.x-DOCK.x,P.pos.z-DOCK.z)<6&&!G.dockBuilt)pr={text:has(COST.dock)?`${K} — Build a landing (${costText(COST.dock)})`:`Landing site — needs ${costText(COST.dock)}`,act:has(COST.dock)?buildDock:null};
+    else if(!pr&&Math.hypot(P.pos.x-DOCK.x,P.pos.z-DOCK.z)<6){if(!G.boatBuilt)pr={text:has(COST.boat)?`${K} — Build a boat (16 wood)`:`Boat landing — a boat needs ${costText(COST.boat)}`,act:has(COST.boat)?buildBoat:null};else pr={text:`${K} — Board the boat`,act:boardBoat};}
     if(!pr){let best=null,bd=2.2;for(const it of ISL.gather){if(!it.has||Math.abs(it.x-P.pos.x)>3||Math.abs(it.z-P.pos.z)>3)continue;const d=Math.hypot(P.pos.x-it.x,P.pos.z-it.z);if(d<bd){bd=d;best=it;}}
       if(best)pr={text:`${K} — Pick up ${({stick:'sticks',stone:'stones',leaf:'palm leaves',fiber:'vines'})[best.type]}`,act:()=>gatherItem(best)};}
     if(!pr){for(const b of ISL.bushes){if(b.has&&Math.hypot(P.pos.x-b.x,P.pos.z-b.z)<2.3){pr={text:`${K} — Pick berries`,act:()=>pickBush(b)};break;}}}}
@@ -1124,6 +1447,7 @@ const FDEF={
   jaguar:{hp:45,speed:7,dmg:12,range:1.7,rate:1,sc:1,kind:'melee',meat:2},
   dog:{hp:26,speed:6.2,dmg:7,range:1.4,rate:.8,sc:.85,kind:'melee',meat:1},
   soldier:{hp:48,speed:3.4,dmg:13,range:0,rate:2.6,sc:1,kind:'rifle',keep:15,bolts:3},
+  officer:{hp:70,speed:4.6,dmg:18,range:1.9,rate:1.1,sc:1.04,kind:'melee',bolts:4},
   scout:{hp:32,speed:4.4,dmg:11,range:0,rate:2.4,sc:1,kind:'spear',keep:12},
   native:{hp:40,speed:4.6,dmg:12,range:1.7,rate:1.1,sc:1,kind:'melee'},
   zombie:{hp:38,speed:2.7,dmg:11,range:1.5,rate:1,sc:1,kind:'melee'},
@@ -1135,44 +1459,63 @@ function makeBeast(type){const g=new THREE.Group();const mat=JMAT.clone();g.user
     for(let k=0;k<14;k++)P.push(part(GB.box,sp,(k%3-1)*.17,.86,-.6+k*.09,0,k,0,.09,.02,.07));g.add(new THREE.Mesh(merge(P),mat));g.userData.legs=quadLegs(g,c,.42,.42,.18,.5);}
   else{const c=0x6e5a44;const P=[part(GB.box,c,0,.52,0,0,0,0,.36,.36,.95),part(GB.box,c,0,.68,.6,0,0,0,.32,.3,.36),part(GB.box,0x4a3a2c,0,.6,.86,0,0,0,.16,.14,.2),part(GB.box,c,-.1,.88,.55,.3,0,0,.08,.16,.05),part(GB.box,c,.1,.88,.55,.3,0,0,.08,.16,.05),part(GB.cyl,c,0,.66,-.6,.7,0,0,.04,.5,.04)];g.add(new THREE.Mesh(merge(P),mat));g.userData.legs=quadLegs(g,c,.36,.36,.13,.32);}
   g.userData.mats=[mat];return g;}
-function makeSoldier(){const g=makeHuman(0x7a7350,0xc89a72,0x6a6448);const u=g.userData;
-  box(.52,.12,.52,M(0x6e6848),0,2.12,0,g);box(.5,.04,.2,M(0x6e6848),0,2.07,.3,g);for(const s of[-1,1])box(.06,.22,.36,M(0x6e6848),s*.24,1.98,-.12,g);
-  const rifle=new THREE.Group();box(.07,.1,1.1,M(0x5a3e24),0,0,0,rifle);box(.04,.04,.5,M(0x2a2a2a),0,.04,.7,rifle);rifle.position.set(-.21,-.55,.35);u.aR.add(rifle);u.rifle=rifle;
-  u.aL.rotation.x=u.aR.rotation.x=-1.3;u.aL.rotation.z=-.35;return g;}
+/* Imperial Japanese Army holdouts, in the kit they wore in 1944: khaki tunics, puttees, Type 90 helmets or field caps
+   with neck flaps, Arisaka rifles with long bayonets. Officers carry a sword. */
+function makeSoldier(officer){const kh=officer?0x8a7e50:0x857a4a;const g=makeHuman(kh,0xc89a72,kh);const u=g.userData;const leather=0x4a3220,olive=0x5c5c3a;
+  const P=[part(GB.box,leather,0,.86,0,0,0,0,.66,.1,.4)];
+  if(!officer){for(const x of[-.2,0,.2])P.push(part(GB.box,0x6a4a2c,x,.92,.21,0,0,0,.16,.14,.08));P.push(part(GB.box,0x6a6a4a,.34,.82,-.05,0,0,0,.12,.22,.12));P.push(part(GB.box,0x7a6e44,0,1.25,-.26,0,0,0,.5,.5,.18));}
+  else{P.push(part(GB.box,0x3a2a1a,-.34,.7,.05,.3,0,.12,.07,.1,1.1));P.push(part(GB.box,0x2a2a2a,.32,.8,.1,0,0,0,.1,.2,.18));for(const x of[-.12,.12])P.push(part(GB.box,0xb02020,x,1.48,.19,0,0,0,.1,.05,.02));}
+  P.push(part(GB.box,kh,0,1.6,0,0,0,0,.5,.1,.38));
+  if(officer){P.push(part(GB.box,0x8a7e50,0,2.13,0,0,0,0,.5,.14,.5));P.push(part(GB.box,0x3a2a1a,0,2.06,.28,0,0,0,.44,.03,.16));P.push(part(GB.box,0xd8b040,0,2.15,.255,0,0,0,.07,.07,.02));}
+  else if(Math.random()<.6){P.push(part(GB.ico,olive,0,2.1,0,0,0,0,.33,.22,.34));P.push(part(GB.box,olive,0,2.02,0,0,0,0,.6,.04,.62));P.push(part(GB.box,0xd8b040,0,2.15,.33,0,0,0,.06,.06,.02));for(let k=0;k<6;k++)P.push(part(GB.box,0x4a5a2a,rand(-.25,.25),2.22,rand(-.25,.25),0,rand(0,3),.6,.03,.3,.03));}
+  else{P.push(part(GB.box,0x8a7e50,0,2.12,0,0,0,0,.5,.12,.5));P.push(part(GB.box,0x5a4a2a,0,2.08,.29,0,0,0,.4,.03,.14));P.push(part(GB.box,0xd8b040,0,2.14,.255,0,0,0,.06,.06,.02));for(const x of[-.2,0,.2])P.push(part(GB.box,0x9a8e60,x,1.85,-.24,.15,0,x*.5,.18,.45,.02));}
+  const body=new THREE.Mesh(merge(P),JMAT);g.add(body);
+  for(const leg of[u.lL,u.lR]){const L=[];for(let k=0;k<5;k++)L.push(part(GB.box,officer?0x3a2a1a:jc(0x9a8e64,.04),0,-.45-k*.07,0,k%2?.08:-.08,0,0,.25,.075,.27));L.push(part(GB.box,0x3a2a1a,0,-.77,.04,0,0,0,.25,.07,.32));leg.add(new THREE.Mesh(merge(L),JMAT));}
+  if(officer){const sw=new THREE.Group();const S2=[part(GB.box,0x2a1a10,0,0,0,0,0,0,.05,.05,.3),part(GB.box,0xd8b040,0,0,.17,0,0,0,.14,.05,.04)];for(let k=0;k<6;k++)S2.push(part(GB.box,0xd8dcdc,0,.01+k*k*.004,.3+k*.16,-k*.02,0,0,.025,.06,.17));sw.add(new THREE.Mesh(merge(S2),JMAT));sw.position.set(0,-.66,.08);sw.rotation.x=-.3;u.aR.add(sw);u.sword=sw;}
+  else{const rifle=new THREE.Group();rifle.add(new THREE.Mesh(merge([part(GB.box,0x6a4424,0,0,0,0,0,0,.07,.11,1.2),part(GB.box,0x2a2a2a,0,.04,.75,0,0,0,.04,.04,.4),part(GB.box,0xc8ccd0,0,.0,1.12,0,0,0,.02,.04,.42),part(GB.box,0x2a2a2a,0,.08,.1,0,0,0,.05,.05,.2)]),JMAT));rifle.position.set(-.21,-.55,.3);u.aR.add(rifle);u.rifle=rifle;u.aL.rotation.x=u.aR.rotation.x=-1.3;u.aL.rotation.z=-.35;}
+  return g;}
 function makeNative(scout){const skin=[0x8a5a3a,0x6e4630,0x9a6a48][randi(0,2)];const g=makeHuman(skin,skin,0x5a4024);const u=g.userData;
   for(let k=0;k<3;k++)box(.64,.04,.02,M(0xe8e0cc),0,1.0+k*.18,.19,g);
   box(.5,.56,.06,M(0xe8e2d0),0,1.88,.25,g);for(const s of[-1,1])box(.1,.07,.02,M(0x101010),s*.11,1.95,.29,g);box(.16,.04,.02,M(0x8a2a1a),0,1.76,.29,g);
   for(let k=0;k<5;k++){const f=box(.06,.5,.02,M(k%2?0x2f6a2a:0xc8a040),(k-2)*.1,2.3,-.05,g);f.rotation.z=(k-2)*.25;}
   const spear=new THREE.Group();const sh=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,2.2,5),M(0x6e5232));spear.add(sh);const tip=new THREE.Mesh(new THREE.ConeGeometry(.06,.25,5),M(0x3a3a3a));tip.position.y=1.2;spear.add(tip);
   spear.position.set(0,-.65,.1);spear.rotation.x=Math.PI/2;u.aR.add(spear);u.spear=spear;return g;}
-function makeFoeMesh(type){if(type==='jaguar'||type==='dog')return makeBeast(type);if(type==='soldier')return makeSoldier();if(type==='scout'||type==='native')return makeNative(type==='scout');return makeEnemyMesh(type,false);}
+function makeFoeMesh(type){if(type==='jaguar'||type==='dog')return makeBeast(type);if(type==='soldier'||type==='officer')return makeSoldier(type==='officer');if(type==='scout'||type==='native')return makeNative(type==='scout');return makeEnemyMesh(type,false);}
 function spawnFoe(type,x,z,o={}){const def=FDEF[type];const mesh=makeFoeMesh(type);if(!mesh.userData.mats)mesh.userData.mats=[];
   const f={type,def,mesh,x,z,y:islandH(x,z),hp:def.hp,max:def.hp,cd:rand(.5,1.5),aware:!!o.aware,raid:!!o.raid,dead:false,deadT:0,flash:0,ph:rand(0,6),face:rand(0,6),kx:0,kz:0,sc:def.sc,stuck:0,side:Math.random()<.5?1:-1,aimT:0,rise:o.rise||0,wave:!!o.wave,throws:0,retreat:0,watcher:!!o.watcher,life:o.life||0};
   mesh.scale.multiplyScalar(def.sc);mesh.position.set(x,f.y-(f.rise?2:0),z);world.add(mesh);foes.push(f);return f;}
-function hurtFoe(f,dmg,dir){if(f.dead||f.rise>0||f.watcher)return;f.hp-=dmg;f.flash=.12;f.aware=true;f.raid=false;if(dir){const k=f.type==='jaguar'?3:5;f.kx+=dir.x*k;f.kz+=dir.z*k;}
+function hurtFoe(f,dmg,dir){if(f.dead||f.rise>0||f.watcher)return;if(f.war){f.tf=null;f.tgT=4;}f.hp-=dmg;f.flash=.12;f.aware=true;f.raid=false;if(dir){const k=f.type==='jaguar'?3:5;f.kx+=dir.x*k;f.kz+=dir.z*k;}
   SFX.hit();burst(new V3(f.x,f.y+.9*f.sc,f.z),0x7a1a14,5,3);if(f.hp<=0)killFoe(f);}
-function killFoe(f){f.dead=true;f.deadT=0;G.kills++;const d=f.def;if(d.meat)gain('meat',d.meat);if(d.bolts&&G.tools.bow)gain('bolts',d.bolts);if(f.type==='soldier'&&!G.ev.soldierNote){G.ev.soldierNote=1;toast('His uniform is decades old. He never stopped fighting a war that ended long ago.','note',4800);}}
-function foeTarget(f){if(f.raid&&G.campBuilt&&G.campHP>0&&Math.hypot(P.pos.x-f.x,P.pos.z-f.z)>12)return{x:CAMP.x,z:CAMP.z,camp:true};return{x:P.pos.x,z:P.pos.z,camp:false};}
+function killFoe(f){f.dead=true;f.deadT=0;G.kills++;const d=f.def;if(d.meat)gain('meat',d.meat);if(d.bolts&&G.tools.bow)gain('bolts',d.bolts);if((f.type==='soldier'||f.type==='officer')&&!G.ev.soldierNote){G.ev.soldierNote=1;toast('An Imperial Japanese Army uniform. That war ended five years ago, and nobody ever told him.','note',4800);}}
+function foeTarget(f){if(f.war&&f.tf&&!f.tf.dead)return{x:f.tf.x,z:f.tf.z,camp:false,foe:f.tf};if(f.raid&&G.campBuilt&&G.campHP>0&&Math.hypot(P.pos.x-f.x,P.pos.z-f.z)>12)return{x:CAMP.x,z:CAMP.z,camp:true};return{x:P.pos.x,z:P.pos.z,camp:false};}
 function spearShot(from,tx,ty,tz,speed,dmg){const dx=tx-from.x,dz=tz-from.z,dist=Math.hypot(dx,dz);const T=Math.max(.4,dist/speed);const mesh=new THREE.Mesh(boneGeo,M(0x6e5232));mesh.scale.set(1,1,4);mesh.position.copy(from);world.add(mesh);
-  projs.push({mesh,pos:from.clone(),vel:new V3(dx/T,(ty-from.y)/T+4.9*T,dz/T),dmg,r:.2,life:4,enemy:true,grav:9.8,spin:false});SFX.spear();}
-function rifleShot(f){const from=new V3(f.x,f.y+1.45,f.z);const d=Math.hypot(P.pos.x-f.x,P.pos.z-f.z);const chance=clamp(.9-d/55-(P.moving?.28:0)-(P.sprint?.15:0),.12,.85);
-  const hit=Math.random()<chance;const to=new V3(P.pos.x+(hit?0:rand(-2,2)),P.pos.y+(hit?1.3:rand(.5,2.6)),P.pos.z+(hit?0:rand(-2,2)));tracer(from,to);SFX.rifle();if(hit)hurt(f.def.dmg);}
+  projs.push({mesh,pos:from.clone(),vel:new V3(dx/T,(ty-from.y)/T+4.9*T,dz/T),dmg,r:.2,life:4,enemy:true,grav:9.8,spin:false});SFX.spear();return T;}
+/* the war on Day 15: holdouts and natives shoot at each other, and anyone standing between them gets hit */
+const warHits=[];
+function warHit(o,dmg){if(!o||o.dead)return;o.hp-=dmg;o.flash=.12;burst(new V3(o.x,o.y+1,o.z),0x7a1a14,4,3);if(o.hp<=0){o.dead=true;o.deadT=0;}}
+function crossfire(ax,az,bx,bz,dmg){const vx=bx-ax,vz=bz-az,L2=vx*vx+vz*vz||1;const t=clamp(((P.pos.x-ax)*vx+(P.pos.z-az)*vz)/L2,0,1);const d=Math.hypot(ax+vx*t-P.pos.x,az+vz*t-P.pos.z);
+  if(d<1.3&&t>.05&&t<.97&&Math.random()<.4){hurt(dmg*.6);toast('Caught in the crossfire!','cf',1600);}}
+function rifleShot(f,tf){if(tf){const from=new V3(f.x,f.y+1.45,f.z);const hit=Math.random()<.5;const to=new V3(tf.x+(hit?0:rand(-1.5,1.5)),tf.y+(hit?1.2:rand(.4,2.4)),tf.z+(hit?0:rand(-1.5,1.5)));tracer(from,to);SFX.rifle();if(hit)warHit(tf,f.def.dmg);crossfire(f.x,f.z,to.x,to.z,f.def.dmg*.8);return;}
+  const from=new V3(f.x,f.y+1.45,f.z);const d=Math.hypot(P.pos.x-f.x,P.pos.z-f.z);const chance=clamp(.9-d/55-(P.moving?.28:0)-(P.sprint?.15:0),.12,.85);
+  const hit=Math.random()<chance;const to=new V3(P.pos.x+(hit?0:rand(-2,2)),P.pos.y+(hit?1.3:rand(.5,2.6)),P.pos.z+(hit?0:rand(-2,2)));tracer(from,to);SFX.rifle();if(hit)hurt(f.war?f.def.dmg*.7:f.def.dmg);}
 const _ln=new V3();
 function updateFoes(dt){
+  for(let i=warHits.length-1;i>=0;i--){const w=warHits[i];w.t-=dt;if(w.t<=0){warHit(w.f,w.dmg);warHits.splice(i,1);}}
   for(let n=foes.length-1;n>=0;n--){const f=foes[n];const u=f.mesh.userData;
     if(f.dead){f.deadT+=dt;f.mesh.rotation.z=Math.min(Math.PI/2,f.deadT*5);f.mesh.position.y=f.y-Math.max(0,f.deadT-1.2)*1.2;if(f.deadT>2.4){world.remove(f.mesh);disposeObj(f.mesh);foes.splice(n,1);}continue;}
     if(f.rise>0){f.rise-=dt;f.mesh.position.set(f.x,f.y-Math.max(0,f.rise)*1.6,f.z);if(Math.random()<dt*4)burst(new V3(f.x,f.y+.1,f.z),0xc8b080,2,2);continue;}
     if(f.watcher){f.life-=dt;const d=Math.hypot(P.pos.x-f.x,P.pos.z-f.z);f.face=Math.atan2(P.pos.x-f.x,P.pos.z-f.z);f.mesh.rotation.y=f.face;if(d<18||f.life<=0){if(d<30&&!G.ev.watchNote){G.ev.watchNote=1;toast('Something was watching you from the trees… and it is gone.','watch',4200);}world.remove(f.mesh);disposeObj(f.mesh);foes.splice(n,1);}continue;}
-    const tg=foeTarget(f);const dx=tg.x-f.x,dz=tg.z-f.z,d=Math.hypot(dx,dz)||.001;const pd=Math.hypot(P.pos.x-f.x,P.pos.z-f.z);
+    if(f.war){f.tgT=(f.tgT||0)-dt;if(f.tgT<=0||(f.tf&&f.tf.dead)){f.tgT=rand(2,4);let best=null,bd=55;for(const o of foes){if(!o.war||o.dead||o.team===f.team||o.rise>0)continue;const dd=Math.hypot(o.x-f.x,o.z-f.z);if(dd<bd){bd=dd;best=o;}}const pp=Math.hypot(P.pos.x-f.x,P.pos.z-f.z);f.tf=best&&!(pp<8&&Math.random()<.3)&&Math.random()>.08?best:null;}}
+    const tg=foeTarget(f);const dx=tg.x-f.x,dz=tg.z-f.z,d=Math.hypot(dx,dz)||.001;const pd=Math.hypot(P.pos.x-f.x,P.pos.z-f.z);const td=tg.foe?d:pd;const ax=tg.foe?tg.foe.x:P.pos.x,az=tg.foe?tg.foe.z:P.pos.z,ay=tg.foe?tg.foe.y:P.pos.y;
     if(!f.aware&&(pd<22||f.raid||f.wave))f.aware=true;
     if(!f.aware){f.ph+=dt;if(Math.random()<dt*.3)f.face+=rand(-1,1);const sp=f.def.speed*.25;moveEntity(f,Math.sin(f.face)*sp*dt,Math.cos(f.face)*sp*dt,.4);}
     let mx=0,mz=0;f.cd-=dt;const k=f.def.kind;
     if(f.aware){
       if(tg.camp&&d<5.5){G.campHP-=(f.type==='jaguar'||f.type==='dog'?5:7)*dt;if(G.campHP<=0&&G.campBuilt&&!G.ev.campDownNote)campDestroyed();if(Math.random()<dt*2)burst(new V3(CAMP.x+rand(-4,4),CAMP.h+1,CAMP.z+rand(-4,4)),0x8a7a3a,3,2);}
-      else if(k==='melee'){mx=dx/d;mz=dz/d;if(!tg.camp&&pd<f.def.range*f.sc+.4){mx=mz=0;if(f.cd<=0){f.cd=f.def.rate;f.atk=.35;hurt(f.def.dmg);if(f.type==='dog')SFX.bark();}}}
-      else if(k==='rifle'||k==='spear'){const keep=f.def.keep;if(tg.camp)mx=dx/d,mz=dz/d;else{if(pd>keep+5){mx=dx/d;mz=dz/d;}else if(pd<keep-4){mx=-dx/d;mz=-dz/d;}else{mx=-dz/d*f.side*.6;mz=dx/d*f.side*.6;}
-          if(f.aimT>0){f.aimT-=dt;mx*=.2;mz*=.2;if(f.aimT<=0){if(k==='rifle')rifleShot(f);else{spearShot(new V3(f.x,f.y+1.6,f.z),P.pos.x,P.pos.y+1.1,P.pos.z,18,f.def.dmg);f.throws++;if(f.throws>=3)f.retreat=6;}f.cd=f.def.rate*rand(.85,1.25);}}
-          else if(f.cd<=0&&pd<45){f.aimT=k==='rifle'?.9:.6;}}
+      else if(k==='melee'){mx=dx/d;mz=dz/d;if(!tg.camp&&td<f.def.range*f.sc+.4){mx=mz=0;if(f.cd<=0){f.cd=f.def.rate;f.atk=.35;if(tg.foe)warHit(tg.foe,f.def.dmg);else hurt(f.def.dmg);if(f.type==='dog')SFX.bark();}}}
+      else if(k==='rifle'||k==='spear'){const keep=f.def.keep;if(tg.camp)mx=dx/d,mz=dz/d;else{if(td>keep+5){mx=dx/d;mz=dz/d;}else if(td<keep-4){mx=-dx/d;mz=-dz/d;}else{mx=-dz/d*f.side*.6;mz=dx/d*f.side*.6;}
+          if(f.aimT>0){f.aimT-=dt;mx*=.2;mz*=.2;if(f.aimT<=0){if(k==='rifle')rifleShot(f,tg.foe);else{const TT=spearShot(new V3(f.x,f.y+1.6,f.z),ax,ay+1.1,az,18,f.def.dmg);if(tg.foe&&Math.random()<.55)warHits.push({f:tg.foe,t:TT,dmg:f.def.dmg});f.throws++;if(f.throws>=3&&!f.war)f.retreat=6;}f.cd=f.def.rate*rand(.85,1.25);}}
+          else if(f.cd<=0&&td<45){f.aimT=k==='rifle'?.9:.6;}}
         if(f.retreat>0){f.retreat-=dt;mx=-dx/d;mz=-dz/d;if(f.retreat<=0)f.throws=0;}}
       if(Math.random()<dt*.05&&pd<30){if(f.type==='zombie'||f.type==='crawler')SFX.groan();else if(f.type==='jaguar')SFX.growl();}}
     const sp=f.def.speed*(f.aimT>0?.2:1);const ox=f.x,oz=f.z;
@@ -1181,19 +1524,32 @@ function updateFoes(dt){
     else if(f.kx||f.kz)moveEntity(f,f.kx*dt,f.kz*dt,.4*f.sc);
     const dec=Math.pow(.02,dt);f.kx*=dec;f.kz*=dec;
     for(const o of foes){if(o===f||o.dead||o.watcher||o.rise>0)continue;const sx=f.x-o.x,sz=f.z-o.z,dd=sx*sx+sz*sz;if(dd<.7&&dd>1e-5){const dl=Math.sqrt(dd);moveEntity(f,sx/dl*.05,sz/dl*.05,.4);}}
-    f.y=islandH(f.x,f.z);const want=f.aware?(f.aimT>0||k==='rifle'||k==='spear'?Math.atan2(P.pos.x-f.x,P.pos.z-f.z):Math.atan2(mx||dx,mz||dz)):f.face;f.face+=angDiff(want,f.face)*Math.min(1,dt*8);
+    f.y=islandH(f.x,f.z);const want=f.aware?(f.aimT>0||k==='rifle'||k==='spear'?Math.atan2(ax-f.x,az-f.z):Math.atan2(mx||dx,mz||dz)):f.face;f.face+=angDiff(want,f.face)*Math.min(1,dt*8);
     f.mesh.position.set(f.x,f.y,f.z);f.mesh.rotation.y=f.face;const moving=mx||mz;f.ph+=dt*(moving?sp*2:1);const sw=Math.sin(f.ph)*(moving?.7:.05);
     if(u.legs)u.legs.forEach((l,i)=>l.rotation.x=sw*((i===0||i===3)?1:-1));
-    else if(u.lL){u.lL.rotation.x=sw;u.lR.rotation.x=-sw;if(f.type==='zombie'||f.type==='crawler'){u.aL.rotation.x=-1.3-(f.atk||0)*2;u.aR.rotation.x=-1.3-(f.atk||0)*2;}else if(k==='spear'){u.aR.rotation.x=f.aimT>0?-2.8:-.4+sw*.3;}else if(k==='melee'){u.aR.rotation.x=-1.2-(f.atk||0)*3;}}
+    else if(u.lL){u.lL.rotation.x=sw;u.lR.rotation.x=-sw;if(f.type==='zombie'||f.type==='crawler'){u.aL.rotation.x=-1.3-(f.atk||0)*2;u.aR.rotation.x=-1.3-(f.atk||0)*2;}else if(k==='spear'){u.aR.rotation.x=f.aimT>0?-2.8:-.4+sw*.3;}else if(k==='melee'){u.aR.rotation.x=(f.type==='officer'?-1.7:-1.2)-(f.atk||0)*3;}}
     f.atk=Math.max(0,(f.atk||0)-dt);f.flash=Math.max(0,f.flash-dt);const fi=f.flash>0?.8:0;u.mats.forEach(m=>m.emissive&&m.emissive.setRGB(fi,fi,fi));
     if(f.aimT>0&&k==='rifle'){if(!f.laser){f.laser=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new V3(),new V3()]),new THREE.LineBasicMaterial({color:0xff3a2a,transparent:true,opacity:.6}));world.add(f.laser);}
-      const a=f.laser.geometry.attributes.position;a.setXYZ(0,f.x,f.y+1.45,f.z);a.setXYZ(1,P.pos.x,P.pos.y+1.2,P.pos.z);a.needsUpdate=true;f.laser.visible=true;}else if(f.laser)f.laser.visible=false;
+      const a=f.laser.geometry.attributes.position;a.setXYZ(0,f.x,f.y+1.45,f.z);a.setXYZ(1,ax,ay+1.2,az);a.needsUpdate=true;f.laser.visible=true;}else if(f.laser)f.laser.visible=false;
     if(!f.raid&&!f.wave&&pd>140){if(f.laser)world.remove(f.laser);world.remove(f.mesh);disposeObj(f.mesh);foes.splice(n,1);}}}
 function campDestroyed(){G.campHP=0;G.ev.campDownNote=1;refreshCamp();SFX.thud();G.shake=.4;banner('Camp destroyed','Repair it with 7 vines and 2 sticks',3000);setTimeout(()=>{G.ev.campDownNote=0;},4000);}
 function landPointNear(cx,cz,r0,r1){for(let t=0;t<40;t++){const a=rand(0,6.283),d=rand(r0,r1);const x=cx+Math.cos(a)*d,z=cz+Math.sin(a)*d;if(islandH(x,z)>1.2&&slopeAt(x,z)<.8)return{x,z};}return{x:cx,z:cz-r0};}
 function raid(types,from){const src=from||landPointNear(CAMP.x,CAMP.z-20,10,30);types.forEach((t,i)=>{const p=landPointNear(src.x,src.z,2,8);spawnFoe(t,p.x,p.z,{raid:true,aware:true});});}
 function hostilesNear(r){return foes.some(f=>!f.dead&&!f.watcher&&Math.hypot(f.x-P.pos.x,f.z-P.pos.z)<r)||ibosses.some(b=>b.active&&!b.dead);}
 
+
+function warSpawn(initial){const px=P.pos.x,pz=P.pos.z;const a=Math.atan2(OUTPOST.x-px,OUTPOST.z-pz);
+  const live=t=>foes.filter(f=>f.war&&!f.dead&&f.team===t).length;
+  const put=(type,team,ang)=>{for(let t=0;t<16;t++){const d=rand(20,34),aa=ang+rand(-.75,.75);const x=px+Math.sin(aa)*d,z=pz+Math.cos(aa)*d;if(islandH(x,z)>1.2&&slopeAt(x,z)<.8){const f=spawnFoe(type,x,z,{aware:true});f.war=true;f.team=team;f.tgT=rand(.2,1.5);return f;}}};
+  for(let k=live('jp');k<5;k++)put(k%4===3?'officer':'soldier','jp',a);
+  for(let k=live('nat');k<6;k++)put(k%3===2?'native':'scout','nat',a+Math.PI);}
+function startWar(){G.ev.war=1;G.warT=0;foes.filter(f=>!f.dead&&f.raid).forEach(f=>{f.dead=true;f.deadT=2.3;});
+  banner('Crossfire!','The soldiers and the natives are at war',4200);SFX.drum();setTimeout(SFX.rifle,350);setTimeout(SFX.rifle,800);
+  setTimeout(()=>toast(G.stairFound?'Run for the stairway — it is the only place they will not follow':'Get away from the fighting. The carved stones lead west, to somewhere underground','war',5600),2600);
+  saveCheckpoint('island');}
+function updateWar(dt){if(!G.ev.war||G.story!==4)return;G.warT=(G.warT||0)-dt;if(G.warT<=0){G.warT=6;warSpawn();}
+  if(Math.random()<dt*.9){const a=rand(0,6.283),d=rand(25,60);const x=P.pos.x+Math.sin(a)*d,z=P.pos.z+Math.cos(a)*d;const y=islandH(x,z)+1.4;tracer(new V3(x,y,z),new V3(x+rand(-20,20),y+rand(-1,2),z+rand(-20,20)));noise(.12,.18,1800,'bandpass',0,.7);}
+  G.drumT=(G.drumT||0)-dt;if(G.drumT<=0){G.drumT=rand(.6,1.4);SFX.drum();}}
 /* ---------- island mini bosses ---------- */
 function bossBar(b){G.ibar=b;}
 function hitIBoss(b,dmg){if(b.dead||!b.active||b.invuln)return;b.hp-=dmg;b.flash=.12;SFX.hit();burst(new V3(b.hit.x,b.hit.y,b.hit.z),0x7a1a14,6,4);if(b.hp<=0){b.hp=0;b.dead=true;b.deadT=0;b.onDeath&&b.onDeath();}}
@@ -1223,10 +1579,10 @@ function moveBoss(b,dx,dz,r){const o={x:b.x,z:b.z};moveEntity(o,dx,dz,r);b.x=o.x
 function bossCampDamage(b,rate,dt){if(G.campBuilt&&G.campHP>0&&Math.hypot(b.x-CAMP.x,b.z-CAMP.z)<9){G.campHP-=rate*dt;if(G.campHP<=0&&!G.ev.campDownNote)campDestroyed();}}
 function telegraphRing(x,z,r,t,dmg,y){const m=new THREE.Mesh(new THREE.RingGeometry(r-.35,r,40),new THREE.MeshBasicMaterial({color:0xff3a2a,transparent:true,opacity:.85,side:THREE.DoubleSide,depthWrite:false}));m.rotation.x=-Math.PI/2;const gy=y!==undefined?y:islandH(x,z)+.08;m.position.set(x,gy,z);world.add(m);
   const disc=new THREE.Mesh(new THREE.CircleGeometry(r,40),new THREE.MeshBasicMaterial({color:0xff3a2a,transparent:true,opacity:0,depthWrite:false}));disc.rotation.x=-Math.PI/2;disc.position.set(x,gy-.01,z);world.add(disc);slams.push({m,disc,x,z,t:-t+1.25,r,dmg,island:true});}
-function spawnBigfoot(){const p=landPointNear(CAMP.x,CAMP.z-26,0,5);const b=iBossBase('King Bigfoot',makeBigfoot(),p.x,p.z,650);b.kind='bigfoot';b.face=Math.atan2(CAMP.x-p.x,CAMP.z-p.z);
+function spawnBigfoot(){const p={x:HILL_CAVE.x,z:HILL_CAVE.z+6.5};const b=iBossBase('King Bigfoot',makeBigfoot(),p.x,p.z,650);b.kind='bigfoot';b.face=0;
   b.onDeath=()=>{SFX.bigRoar();G.ev.bigfootDone=1;banner('King Bigfoot falls','The jungle goes quiet',2800);gain('meat',6);saveCheckpoint('island');};return b;}
-function spawnMonster(){const p=landPointNear(CAMP.x+24,CAMP.z-18,0,5);const b=iBossBase('The Island Monster',makeIslandMonster(),p.x,p.z,750);b.kind='monster';b.face=Math.atan2(CAMP.x-p.x,CAMP.z-p.z);
-  b.onDeath=()=>{SFX.bigRoar();G.ev.monsterDone=1;banner('The Island Monster is dead','Its body sinks into the mud',2800);gain('meat',8);saveCheckpoint('island');};return b;}
+function spawnMonster(){const p=landPointNear(SWAMP.x,SWAMP.z,4,14);const b=iBossBase('The Swamp Monster',makeIslandMonster(),p.x,p.z,750);b.kind='monster';b.face=0;
+  b.onDeath=()=>{SFX.bigRoar();G.ev.monsterDone=1;banner('The Swamp Monster is dead','Its body sinks back into the mud',2800);gain('meat',8);saveCheckpoint('island');};return b;}
 function spawnPlesiosaur(){const b=iBossBase('The Plesiosaur',makePlesiosaur(),WRECK.x-14,WRECK.z-10,300);b.kind='plesio';b.y=-5;b.state='lurk';b.st=0;b.ang=rand(0,6.28);
   b.ring=new THREE.Mesh(new THREE.RingGeometry(1.6,2.4,24),new THREE.MeshBasicMaterial({color:0xdff2f4,transparent:true,opacity:.35,side:THREE.DoubleSide,depthWrite:false}));b.ring.rotation.x=-Math.PI/2;world.add(b.ring);
   b.onDeath=()=>{SFX.bigRoar();G.ev.plesioDone=1;banner('The Plesiosaur sinks','The wreck is yours to salvage',2800);burst(new V3(b.x,.5,b.z),0x5a1a14,30,8,2);saveCheckpoint('island');};return b;}
@@ -1257,11 +1613,17 @@ function updateMonster(b,dt){const u=b.mesh.userData;const dx=P.pos.x-b.x,dz=P.p
   b.mesh.position.set(b.x,b.y,b.z);b.mesh.rotation.y=b.face;b.hit.x=b.x+Math.sin(b.face)*1.6;b.hit.y=b.y+1.6;b.hit.z=b.z+Math.cos(b.face)*1.6;b.hit.r=2.4;bossCampDamage(b,16,dt);}
 const acidMat=shared(new THREE.MeshBasicMaterial({color:0x9dff3a}));
 function plesioIdle(b,dt){b.ang+=dt*.3;b.x=WRECK.x+Math.cos(b.ang)*18;b.z=WRECK.z+Math.sin(b.ang)*18;b.mesh.position.set(b.x,-6,b.z);if(b.ring){b.ring.position.set(b.x,.15,b.z);b.ring.material.opacity=.2+Math.sin(b.t*3)*.1;}}
+/* the Plesiosaur lives in deep water only: it never follows anyone into the shallows or onto land */
+const plDeep=(x,z)=>islandH(x,z)<-2.6;
+function plesioSpot(b,px,pz,R){for(let k=0;k<16;k++){const a=b.ang+k*.393;const x=px+Math.cos(a)*R,z=pz+Math.sin(a)*R;if(plDeep(x,z)&&plDeep((x+b.x)/2,(z+b.z)/2)){b.ang=a;return true;}}return false;}
 function updatePlesio(b,dt){const u=b.mesh.userData;b.st+=dt;const bx=P.pos.x,bz=P.pos.z;const dx=bx-b.x,dz=bz-b.z,d=Math.hypot(dx,dz)||1;
-  if(b.state==='lurk'){b.ang+=dt*.9;const R=14;b.x=bx+Math.cos(b.ang)*R;b.z=bz+Math.sin(b.ang)*R;b.y=lerp(b.y,-6,dt*2);b.invuln=true;if(b.st>rand(2.5,4)){b.state='rise';b.st=0;SFX.splash();}}
-  else if(b.state==='rise'){const tx=bx+Math.cos(b.ang)*9,tz=bz+Math.sin(b.ang)*9;b.x=lerp(b.x,tx,dt*2);b.z=lerp(b.z,tz,dt*2);b.y=lerp(b.y,-1.1,dt*3);b.invuln=false;if(b.st>1.2){b.state='up';b.st=0;b.atkT=rand(1,2);}}
+  const reach=(G.aboard||islandH(bx,bz)<-1.2)&&Math.hypot(bx-WRECK.x,bz-WRECK.z)<95;
+  if(!reach&&b.state!=='home'&&b.state!=='lunge'){b.state='home';b.st=0;}
+  if(b.state==='home'){b.y=lerp(b.y,-6,dt*2.5);b.invuln=true;b.ang+=dt*.3;const tx=WRECK.x+Math.cos(b.ang)*18,tz=WRECK.z+Math.sin(b.ang)*18;const k=Math.min(1,dt*.8);const nx=lerp(b.x,tx,k),nz=lerp(b.z,tz,k);if(plDeep(nx,nz)||!plDeep(b.x,b.z)){b.x=nx;b.z=nz;}if(reach&&b.st>2.5){b.state='lurk';b.st=0;}}
+  else if(b.state==='lurk'){b.ang+=dt*.9;b.y=lerp(b.y,-6,dt*2);b.invuln=true;if(!plesioSpot(b,bx,bz,14)){b.state='home';b.st=0;}else{const tx=bx+Math.cos(b.ang)*14,tz=bz+Math.sin(b.ang)*14;const k=Math.min(1,dt*3);b.x=lerp(b.x,tx,k);b.z=lerp(b.z,tz,k);if(b.st>rand(2.5,4)){b.state='rise';b.st=0;SFX.splash();}}}
+  else if(b.state==='rise'){let tx=bx+Math.cos(b.ang)*9,tz=bz+Math.sin(b.ang)*9;if(!plDeep(tx,tz)){if(plesioSpot(b,bx,bz,9)){tx=bx+Math.cos(b.ang)*9;tz=bz+Math.sin(b.ang)*9;}else{tx=b.x;tz=b.z;}}b.x=lerp(b.x,tx,dt*2);b.z=lerp(b.z,tz,dt*2);b.y=lerp(b.y,-1.1,dt*3);b.invuln=false;if(b.st>1.2){b.state='up';b.st=0;b.atkT=rand(1,2);}}
   else if(b.state==='up'){b.y=-1.1+Math.sin(b.t*2)*.15;b.invuln=false;b.atkT-=dt;if(b.atkT<=0){b.state='lunge';b.st=0;SFX.growl();}if(b.st>5){b.state='dive';b.st=0;}}
-  else if(b.state==='lunge'){if(b.st>.6&&!b.done1){b.done1=1;if(d<12){if(G.aboard){G.boatHP-=16;toast('The Plesiosaur slams the boat!','pl',1800);if(G.boatHP<=0)sinkBoat();}hurt(9);G.shake=.6;SFX.thud();}splashAt(b.x+dx/d*5,b.z+dz/d*5,true);}if(b.st>1.2){b.done1=0;b.state=Math.random()<.5?'up':'dive';b.st=0;b.atkT=rand(1.2,2.2);}}
+  else if(b.state==='lunge'){if(b.st>.6&&!b.done1){b.done1=1;if(d<12){if(G.aboard){G.boatHP-=16;toast('The Plesiosaur slams the boat!','pl',1800);if(G.boatHP<=0)sinkBoat();}hurt(9);G.shake=.6;SFX.thud();}splashAt(b.x+dx/d*5,b.z+dz/d*5,true);}if(b.st>1.2){b.done1=0;b.state=reach&&Math.random()<.5?'up':'dive';b.st=0;b.atkT=rand(1.2,2.2);}}
   else if(b.state==='dive'){b.y=lerp(b.y,-6,dt*2.5);b.invuln=b.y<-3;if(b.st>1.4){b.state='lurk';b.st=0;}}
   b.face=Math.atan2(dx,dz);const up=b.state==='up'||b.state==='lunge'||b.state==='rise';
   u.neck.forEach((s,i)=>{const lunge=b.state==='lunge'?Math.sin(clamp(b.st/.6,0,1)*Math.PI)*.18:0;s.rotation.x=(up?-.02:.2)+Math.sin(b.t*1.6+i*.5)*.05+lunge;s.rotation.z=Math.sin(b.t*1.1+i*.4)*.04;});
@@ -1288,10 +1650,10 @@ function spawnTempleZombies(cine){if(LV.zSpawned)return;LV.zSpawned=true;
 const CH_ENEMIES={1:['zombie','zombie','crawler'],2:['zombie','archer','crawler','archer'],3:['zombie','crawler','archer','brute','zombie'],4:['zombie','crawler','archer','brute','archer','zombie']};
 const CH_KEEPER={1:'zombie',2:'archer',3:'brute',4:'brute'};
 function startLevel(ch,lv,retry,surface){G.mode='dungeon';G.chapter=ch;G.level=lv;G.story=4+ch;G.hasKey=false;G.transitioning=false;G.paused=false;
-  if(!retry)saveCheckpoint('dungeon');clearWorld();const th=THEMES[ch];const isBoss=ch===4&&lv===3;
-  const D=isBoss?genBossArena():genDungeon(ch,lv,G.runSeed*31+ch*101+lv*7);
+  if(!retry)saveCheckpoint('dungeon');clearWorld();const isBoss=ch===4&&lv===3;const th=isBoss?THEMES[4]:ch===4?THEMES.asylum:THEMES[ch];
+  const D=isBoss?genBossArena():genUnderground(ch,lv,G.runSeed*31+ch*101+lv*7);
   LV={...D,ch,lv,kind:isBoss?'boss':'level',th,explored:new Uint8Array(D.W*D.H),flow:null,fx:-1,fz:-1,exitOpen:false};
-  buildGrid(th);decorate(th,LV.kind);
+  buildGrid(th);if(isBoss)decorate(th,LV.kind);else dressLevel(ch);
   const s=cellCenter(LV.start.cx,LV.start.cy);P.pos.set(s.x,0,s.z);P.vy=0;P.pitch=0;P.yaw=0;
   if(G.weapon>=0&&!G.tools[TOOL_KEYS[G.weapon]])G.weapon=-1;
   if(isBoss)setupBoss(!retry);else{placeExit();spawnLevelEnemies(ch,lv);placeChests();
@@ -1310,7 +1672,7 @@ function spawnLevelEnemies(ch,lv){const r=LV.r;const n=6+ch*2+lv*2;const pool=CH
   for(let k=0;k<n;k++){const o=rooms[Math.floor(r()*rooms.length)];const{i,j}=randCellIn(o,r);const c=cellCenter(i,j);spawnEnemy(pool[Math.floor(r()*pool.length)],c.x+(r()-.5)*1.5,c.z+(r()-.5)*1.5);}
   const kc=cellCenter(LV.keeperRoom.cx,LV.keeperRoom.cy);LV.keeper=spawnEnemy(CH_KEEPER[ch],kc.x,kc.z,{keeper:true});
   const w=cellCenter(LV.keeperRoom.cx+1<LV.keeperRoom.x+LV.keeperRoom.w?LV.keeperRoom.cx+1:LV.keeperRoom.cx,LV.keeperRoom.cy);spawnEnemy(pool[0],w.x,w.z);}
-function placeChests(){const r=LV.r;const rooms=LV.rooms.filter(o=>o!==LV.start&&o!==LV.exitRoom);const n=Math.min(rooms.length,1+(r()<.6?1:0));
+function placeChests(){const r=LV.r;const rooms=LV.rooms.filter(o=>o!==LV.start&&o!==LV.exitRoom&&!o.j);const n=Math.min(rooms.length,1+(r()<.6?1:0));
   for(let k=0;k<n;k++){const o=rooms.splice(Math.floor(r()*rooms.length),1)[0];const i=o.x+o.w-1,j=o.y;if(LV.grid[j][i]!==0)continue;const c=cellCenter(i,j);const x=c.x+.9,z=c.z-.9;
     const g=new THREE.Group();const wd=M(0x6a4424),gold=M(0xd8a83a,{metalness:.5,roughness:.4});box(.9,.55,.6,wd,0,.28,0,g);box(.94,.06,.64,gold,0,.5,0,g);
     const lid=new THREE.Group();lid.position.set(0,.56,-.3);box(.9,.2,.6,wd,0,.1,.3,lid);box(.12,.12,.04,gold,0,.05,.61,lid);g.add(lid);
@@ -1420,7 +1782,7 @@ function bossAttack(){const B=boss,ph=B.phase;const list=ph===1?['volley','volle
   B.atk=ph===1?2.1:ph===2?1.7:1.25;}
 function updateBoss(dt,visualOnly){const B=boss;B.t+=dt;B.shieldMsgT-=dt;B.summonCd-=dt;
   if(B.dying){B.deathT+=dt;B.g.rotation.y+=dt*(3+B.deathT*6);B.coreM.emissiveIntensity=1.2+Math.sin(B.deathT*30)*.9;if(Math.random()<.6)burst(B.pos.clone().add(new V3(rand(-2,2),rand(-2,2),rand(-2,2))),0xff7a3a,6,7);G.shake=Math.max(G.shake,.45);B.g.scale.setScalar(Math.max(.05,1-B.deathT*.25));return;}
-  if(!visualOnly&&!B.active&&P.pos.z<19*S){B.active=true;SFX.roar();G.shake=.6;toast(isTouch?'Bolts restock beside the pillars':'Use the crossbow (3) and Rune Staff (4). Bolts restock beside the pillars','tip',4200);}
+  if(!visualOnly&&!B.active&&P.pos.z<19*S){B.active=true;SFX.roar();G.shake=.6;toast(isTouch?'Bolts restock beside the pillars':'Use the crossbow (5) and Rune Staff (6). Bolts restock beside the pillars','tip',4200);}
   if(B.active){const sp=B.phase===3?1.6:1;B.pos.set(B.center.x+Math.sin(B.t*.35*sp)*8,5.2+Math.sin(B.t*1.4)*.5,B.center.z+Math.cos(B.t*.27*sp)*6);}
   else B.pos.set(B.center.x,5.2+Math.sin(B.t*1.4)*.4,B.center.z);
   B.g.position.copy(B.pos);if(!visualOnly)B.g.lookAt(P.pos.x,B.pos.y,P.pos.z);else B.g.lookAt(camera.position.x,B.pos.y,camera.position.z);
@@ -1487,7 +1849,7 @@ function startEscape(quick){G.mode='boat';G.story=9;G.paused=false;G.weapon=-1;c
   const boat=makeBoat();world.add(boat);
   const ai=G.names.slice(1).map((n,i)=>{const L=ALLY_LOOK[i%3];const hm=makeHuman(L[0],L[1],L[2]);const lbl=labelSprite(n);lbl.position.y=2.9;hm.add(lbl);const g=boatSeat(hm);world.add(g);const off=[-8,8,-16][i];
     return{g,name:n,x:ARCH.x+off*.5,z:ARCH.z-3-Math.abs(off)*.3,h:Math.PI+off*.012,speed:4,target:13+rand(-1,1),off:off*.012,bump:0};});
-  BOAT={g:boat,x:ARCH.x,z:ARCH.z-4,h:Math.PI,speed:4,hull:100,t:90,ocean,isl,wp,sky,debris:[],rocks:[],chunks,ai,done:false,hitT:0,rockT:3,crumbleT:.8,islY:0};
+  BOAT={g:boat,x:ARCH.x,z:ARCH.z-4,h:Math.PI,speed:4,hull:100,t:90,ocean,isl,wp,sky,debris:[],rocks:[],chunks,ai,done:false,hitT:0,rockT:3,crumbleT:.8,islY:0,rafts:[],spears:[],raftAt:[70,44]};
   P.lookYaw=0;P.pitch=-.06;P.fire=false;for(let i=0;i<20;i++)spawnDebris(true);
   setAmbient('ocean');
   if(quick){G.inv=NEW_INV();G.tools=NEW_TOOLS();showHud();banner('Row!','The island is coming apart',2600);}else cineEscape();}
@@ -1509,8 +1871,8 @@ function updateBoat(dt){const B=BOAT;if(B.done)return;const auto=!!CINE;if(!auto
   if(keys.KeyW||keys.ArrowUp)thr+=1;if(keys.KeyS||keys.ArrowDown)thr-=1;thr+=stick.y;}
   B.h+=clamp(steer,-1,1)*1.2*dt*(.45+Math.min(1,B.speed/8));
   const target=auto?4:thr>.1?16:thr<-.1?1:5;B.speed+=clamp(target-B.speed,-9*dt,6*dt);
-  const dist=Math.hypot(B.x,B.z)||1;const pull=Math.max(0,7.5*(1-dist/680))*(1+prog*1.2);
-  const mv=(o,sp)=>{const dx=Math.sin(o.h),dz=Math.cos(o.h);const d=Math.hypot(o.x,o.z)||1;const nx=o.x+dx*sp*dt-(o.x/d)*pull*dt,nz=o.z+dz*sp*dt-(o.z/d)*pull*dt;if(islandH(nx,nz)+B.islY<-.6){o.x=nx;o.z=nz;}else{o.x+=o.x/d*dt*3;o.z+=o.z/d*dt*3;o.speed*=.9;}};
+  const dist=Math.hypot(B.x,B.z)||1;const pull=auto?0:Math.max(0,7.5*(1-dist/680))*(1+prog*1.2)*smooth(0,8,90-B.t);
+  const mv=(o,sp)=>{const dx=Math.sin(o.h),dz=Math.cos(o.h);const d=Math.hypot(o.x,o.z)||1;const nx=o.x+dx*sp*dt-(o.x/d)*pull*dt,nz=o.z+dz*sp*dt-(o.z/d)*pull*dt;if(islandH(nx,nz)+B.islY<-.6||Math.hypot(nx,nz)>d+.001){o.x=nx;o.z=nz;}else{const out=Math.max(4,pull+3);o.x+=o.x/d*dt*out;o.z+=o.z/d*dt*out;o.speed=Math.max(o.speed*.97,3);}};
   mv(B,B.speed);
   const amp=1+prog*.8;B.islY=-17*prog*prog*(3-2*prog);B.isl.position.y=B.islY;
   const wy=waveY(B.x,B.z,T)*amp;
@@ -1548,12 +1910,33 @@ function updateBoat(dt){const B=BOAT;if(B.done)return;const auto=!!CINE;if(!auto
     for(const a of B.ai){if(Math.hypot(d.x-a.x,d.z-a.z)<d.r+1.2){a.bump=1;a.speed*=.5;a.x-=(d.x-a.x)*.2;a.z-=(d.z-a.z)*.2;}}
     if(rx*dx+rz*dz<-35||dd>260){world.remove(d.mesh);disposeObj(d.mesh);B.debris.splice(i,1);}}
   while(B.debris.length<22){const n=B.debris.length;spawnDebris(false);if(B.debris.length===n)break;}
+  updateRafts(dt,auto,amp);
   if(auto)return;const ca=Math.cos(B.h),sa=Math.sin(B.h);const sh=G.shake*(reduceMotion?.25:1);
   camera.position.set(B.x-sa*1.4,wy+1.6,B.z-ca*1.4);
   camera.rotation.set(P.pitch+B.g.rotation.x*.6+rand(-1,1)*sh*.03,B.h+Math.PI+P.lookYaw,B.g.rotation.z*.8);
   G.hull=B.hull;const nd=Math.hypot(B.x,B.z);
   if(nd>=600){B.done=true;playFinale();}else if(B.hull<=0||B.t<=0){B.done=true;die(B.hull<=0?'wreck':'pulled');}}
 
+
+/* the natives follow the survivors out to sea on log rafts, throwing spears, until the swell tips them over */
+function makeRaft(){const g=new THREE.Group();const P=[];for(let k=0;k<6;k++)P.push(part(GB.cyl,jc(0x6a4a2a,.1),(k-2.5)*.42,0,0,Math.PI/2,0,0,.22,4.2,.22));for(const z of[-1.5,1.5])P.push(part(GB.box,0x8a7a4a,0,.2,z,0,0,0,2.7,.06,.12));
+  g.add(new THREE.Mesh(merge(P),JMAT));const men=[];for(let i=0;i<3;i++){const m=makeNative(true);m.position.set((i-1)*.8,.15,(i-1)*1.1);m.scale.setScalar(.9);g.add(m);men.push(m);}g.userData.men=men;return g;}
+function spawnRaft(){const B=BOAT;const side=Math.random()<.5?-1:1;const dx=Math.sin(B.h),dz=Math.cos(B.h);const x=B.x-dx*30+dz*side*22,z=B.z-dz*30-dx*side*22;
+  const g=makeRaft();world.add(g);B.rafts.push({g,x,z,h:B.h,side,t:0,cd:rand(2,3),state:'chase',tipT:0,life:rand(14,17)});SFX.drum();setTimeout(SFX.drum,300);}
+function updateRafts(dt,auto,amp){const B=BOAT;
+  if(!auto&&B.raftAt.length&&B.t<B.raftAt[0]){B.raftAt.shift();spawnRaft();if(G.names.length>2||B.t<50)spawnRaft();toast(B.rafts.length>1?'Natives on rafts! They followed you out to sea':'A native raft is coming after you!','raft',3200);}
+  for(let i=B.rafts.length-1;i>=0;i--){const r=B.rafts[i];r.t+=dt;const men=r.g.userData.men;
+    if(r.state==='chase'){const dx=Math.sin(B.h),dz=Math.cos(B.h);const tx=B.x+dz*r.side*9-dx*2,tz=B.z-dx*r.side*9-dz*2;const want=Math.atan2(tx-r.x,tz-r.z);r.h+=clamp(angDiff(want,r.h),-1,1)*2*dt;
+      const d=Math.hypot(tx-r.x,tz-r.z);const sp=clamp(B.speed+d*.6,3,19);r.x+=Math.sin(r.h)*sp*dt;r.z+=Math.cos(r.h)*sp*dt;
+      men.forEach((m,k)=>{m.rotation.y=Math.atan2(B.x-r.x,B.z-r.z)-r.h;const u=m.userData;u.aR.rotation.x=k===r.thrower&&r.cd<.5?-2.8:-.6+Math.sin(T*3+k)*.3;});
+      if(!auto){r.cd-=dt;if(r.cd<=0&&d<16){r.cd=rand(1.8,2.8);r.thrower=randi(0,2);const m=men[r.thrower];const from=new V3();m.getWorldPosition(from);from.y+=1.8;const TT=1.1;const lx=B.x+Math.sin(B.h)*B.speed*TT+rand(-4,4),lz=B.z+Math.cos(B.h)*B.speed*TT+rand(-4,4);
+        const sm=new THREE.Mesh(boneGeo,M(0x6e5232));sm.scale.set(1,1,4);sm.position.copy(from);world.add(sm);B.spears.push({m:sm,ox:from.x,oy:from.y,oz:from.z,vx:(lx-from.x)/TT,vz:(lz-from.z)/TT,vy:(0-from.y+4.9*TT*TT)/TT,t:0,T:TT,tx:lx,tz:lz});SFX.spear();}}
+      if(!auto&&r.t>r.life){r.state='tip';r.tipT=0;splashAt(r.x,r.z,true);G.shake=Math.max(G.shake,.3);toast('A wave rolls the raft over. They are gone.','raft',3000);SFX.thud();}}
+    else{r.tipT+=dt;r.g.rotation.z=Math.min(Math.PI*.9,r.tipT*2.4)*r.side;men.forEach((m,k)=>{m.position.y=.15-r.tipT*(1.6+k*.3);m.position.x+=r.side*dt*1.5;});if(r.tipT>.5&&!r.sp2){r.sp2=1;splashAt(r.x+r.side*2,r.z,false);}
+      if(r.tipT>2.6){world.remove(r.g);disposeObj(r.g);B.rafts.splice(i,1);continue;}}
+    const y=waveY(r.x,r.z,T)*amp;r.g.position.set(r.x,y-.05-(r.state==='tip'?r.tipT*.8:0),r.z);r.g.rotation.y=r.h;if(r.state==='chase')r.g.rotation.z=Math.sin(T*1.6+i)*.07;}
+  for(let i=B.spears.length-1;i>=0;i--){const s=B.spears[i];s.t+=dt;const t=s.t;s.m.position.set(s.ox+s.vx*t,s.oy+s.vy*t-4.9*t*t,s.oz+s.vz*t);s.m.lookAt(s.ox+s.vx*(t+.05),s.oy+s.vy*(t+.05)-4.9*(t+.05)**2,s.oz+s.vz*(t+.05));
+    if(t>=s.T){if(Math.hypot(s.tx-B.x,s.tz-B.z)<2.2&&B.hitT<=0){B.hull-=5;B.hitT=.4;SFX.thud();G.hurtFlash=.5;G.shake=Math.max(G.shake,.25);toast('A spear thuds into the hull!','hit');}else noise(.3,.15,1500);world.remove(s.m);B.spears.splice(i,1);}}}
 /* ---------- allies ---------- */
 function updateAllies(dt){const f=fwd(),rt={x:Math.cos(P.yaw),z:-Math.sin(P.yaw)};
   for(const a of allies){let tx=P.pos.x+rt.x*a.off[0]-f.x*a.off[1],tz=P.pos.z+rt.z*a.off[0]-f.z*a.off[1];
@@ -1599,7 +1982,7 @@ function lookFrom(x,y,z,yaw,pitch,roll=0){camera.position.set(x,y,z);camera.rota
 const yawTo=(fx,fz,tx,tz)=>Math.atan2(-(tx-fx),-(tz-fz));
 function riseFoes(dt){for(const f of foes){if(f.rise>0){f.rise-=dt;f.mesh.position.set(f.x,f.y-Math.max(0,f.rise)*1.6,f.z);f.mesh.rotation.y=Math.atan2(P.pos.x-f.x,P.pos.z-f.z);if(Math.random()<dt*4)burst(new V3(f.x,f.y+.1,f.z),0xc8b080,2,2);}}}
 
-/* Prologue: the storm, the reef, and waking up on the sand */
+/* Prologue: August 1950 -- the transport is torpedoed off the Korean coast, and the survivors wake on the sand */
 function wakeSpot(){const x=CAMP.x-6;const z=scanZ(x,CAMP.z,CAMP.z+40,.25,h=>h<1)-1.5;return{x,z,h:islandH(x,z)};}
 function stormY(x,z,t){return Math.sin(x*.08+t*1.3)*1.3+Math.cos(z*.07+t*1.0)*1.1+Math.sin((x+z)*.15+t*2)*.4;}
 function cineOpening(){const names=G.names;const W=wakeSpot();const sx=WRECK.x,sz=WRECK.z-34;
@@ -1613,26 +1996,33 @@ function cineOpening(){const names=G.names;const W=wakeSpot();const sx=WRECK.x,s
       c.storm=[c.ship,c.sea,c.rain];ISL.wreck.visible=false;
       c.lay=names.map((n,i)=>{if(i===0)return null;const m=actor(i);const[ox,oz]=offs[i-1];const x=W.x+ox,z=W.z+oz;m.position.set(x,Math.max(islandH(x,z),.1)+.2,z);m.rotation.set(-Math.PI/2,rand(-.6,.6),0);m.userData.base={x,z};return m;}).filter(Boolean);
       c.night=()=>{scene.background=new THREE.Color(0x04070b);scene.fog=new THREE.Fog(0x04070b,18,170);hemi.color.set(0x8090a8);hemi.groundColor.set(0x101418);hemi.intensity=.22;amb.intensity=.08;sun.intensity=.05;torch.intensity=0;};
-      c.night();c.flashT=1.5;},
-    ambient(c,dt){if(c.storm[0].visible){const t=T;const sea=c.sea.geometry.attributes.position;for(let i=0;i<sea.count;i++)sea.setY(i,stormY(sea.getX(i)+c.sx,sea.getZ(i)+c.sz,t));sea.needsUpdate=true;
-        if(!c.wrecked){const y=stormY(c.sx,c.sz,t);c.ship.position.y=y-1.2;c.ship.rotation.x=(stormY(c.sx,c.sz-8,t)-stormY(c.sx,c.sz+8,t))*.05;c.ship.rotation.z=(stormY(c.sx-4,c.sz,t)-stormY(c.sx+4,c.sz,t))*.08;}
+      c.night();c.rain.visible=false;c.storm=c.storm.filter(o=>o!==c.rain);},
+    ambient(c,dt){if(c.storm[0].visible){const t=T;const sea=c.sea.geometry.attributes.position;for(let i=0;i<sea.count;i++)sea.setY(i,stormY(sea.getX(i)+c.sx,sea.getZ(i)+c.sz,t)*.35);sea.needsUpdate=true;
+        if(!c.wrecked){const y=stormY(c.sx,c.sz,t)*.35;c.ship.position.y=y-1.2;c.ship.rotation.x=(stormY(c.sx,c.sz-8,t)-stormY(c.sx,c.sz+8,t))*.05;c.ship.rotation.z=(stormY(c.sx-4,c.sz,t)-stormY(c.sx+4,c.sz,t))*.08;}
         const rp=c.rain.geometry.attributes.position;for(let i=0;i<rp.count;i++){let y=rp.getY(i)-dt*28;if(y<0)y+=30;rp.setY(i,y);}rp.needsUpdate=true;c.rain.position.set(camera.position.x,camera.position.y-12,camera.position.z);
-        c.flashT-=dt;if(c.flashT<=0){c.flashT=rand(1.6,3.4);c.fl=1;setTimeout(SFX.thunder,rand(150,700));}if(c.fl>0){c.fl-=dt*3.5;flash(Math.max(0,c.fl)*.55);hemi.intensity=.22+Math.max(0,c.fl)*1.6;}}
+        if(c.fl>0){c.fl-=dt*1.6;flash(Math.max(0,c.fl)*.6);hemi.intensity=.22+Math.max(0,c.fl)*1.2;}}
       else if(ISL&&ISL.water)ISL.water.position.y=Math.sin(T*.6)*.08;},
     shots:[
-      {dur:5.5,sub:'Three days out of port, the storm found the ship.',enter(){SFX.thunder();},cam:(k,c)=>camPath([sx-34,10,sz+30],[sx-24,7,sz+12],[sx,4,sz],[sx,5,sz-4],k)},
-      {dur:5,sub:'Then the reef found it too.',update(k,t,dt,c){if(k>.42&&!c.wrecked){c.wrecked=1;SFX.thud();SFX.creak();setTimeout(SFX.creak,400);G.shake=1;c.fl=1.2;burst(new V3(c.sx,2,c.sz-12),0xdff2f4,40,10,2.5);
-          const mast=own(new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,15,6),M(0x3e2a1a)));mast.position.set(c.sx,11,c.sz-5);c.mast=mast;c.mastT=0;}
-        if(c.wrecked){c.ship.rotation.z=lerp(c.ship.rotation.z,.38,.04);c.ship.rotation.x=lerp(c.ship.rotation.x,.12,.04);c.ship.position.y=lerp(c.ship.position.y,-2,.03);if(c.mast){c.mastT+=dt;c.mast.rotation.x=Math.min(1.5,c.mastT*c.mastT*1.4);c.mast.position.z=c.sz-5+Math.sin(c.mast.rotation.x)*7.5;c.mast.position.y=11-Math.sin(c.mast.rotation.x)*5;}}},
-        cam:(k,c)=>camPath([sx+20,5,sz-26],[sx+15,4.2,sz-20],[sx,3,sz-4],[sx,3,sz-2],k)},
+      {dur:6,sub:'August 1950. A Navy transport runs dark along the Korean coast, carrying Marines to the landing at Tongyeong.',cam:(k,c)=>camPath([sx-34,10,sz+30],[sx-24,7,sz+12],[sx,4,sz],[sx,5,sz-4],k)},
+      {dur:4.6,sub:'Nobody sees the torpedo until it is too late.',enter(c){const g=new THREE.Group();const wake=new THREE.Mesh(new THREE.PlaneGeometry(.9,1),new THREE.MeshBasicMaterial({color:0xdff2f4,transparent:true,opacity:.75}));wake.rotation.set(-Math.PI/2,0,Math.PI/2);g.add(wake);
+          const tp=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,2.2,8),M(0x2a2c2e,{metalness:.5}));tp.rotation.z=Math.PI/2;tp.position.y=-.35;g.add(tp);c.torp=own(g);c.wake=wake;c.tx0=sx+70;noise(4,.12,600);},
+        update(k,t,dt,c){const x=lerp(c.tx0,c.sx+2.2,k);const y=stormY(x,c.sz,T)*.35;c.torp.position.set(x,y+.06,c.sz-1);const L=Math.max(1,(c.tx0-x)*.9);c.wake.scale.y=L;c.wake.position.x=L/2;},
+        cam:(k,c)=>{const x=lerp(c.tx0,c.sx+2.2,k);camPath([x+10,2.2,c.sz+7],[x+7,1.8,c.sz+5],[x-6,.4,c.sz-1],[x-8,1,c.sz-1],Math.min(1,k*1.2));}},
+      {dur:5.6,sub:'The explosion breaks her back. Only a handful of you make it into the water.',enter(c){c.wrecked=1;c.torp.visible=false;SFX.thunder();SFX.thud();SFX.rumble();setTimeout(SFX.creak,500);setTimeout(SFX.splash,900);G.shake=1.2;$('#flash').style.background='#ffb070';c.fl=1.3;
+          for(let i=0;i<3;i++)burst(new V3(c.sx+2,1+i*2,c.sz-1),i?0xff8a3a:0xdff2f4,40,12,3);c.fire=new THREE.PointLight(0xff7a2a,4,40,1.4);c.fire.position.set(c.sx+3,4,c.sz-1);c.ship.parent.add(c.fire);own(c.fire);
+          const mast=own(new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,15,6),M(0x3e2a1a)));mast.position.set(c.sx,11,c.sz-5);c.mast=mast;c.mastT=0;},
+        update(k,t,dt,c){c.ship.rotation.z=lerp(c.ship.rotation.z,-.42,.025);c.ship.rotation.x=lerp(c.ship.rotation.x,.16,.02);c.ship.position.y=lerp(c.ship.position.y,-3.4,.012);c.fire.intensity=3+Math.random()*1.6;
+          if(Math.random()<dt*20)burst(new V3(c.sx+rand(-2,5),rand(1,5),c.sz+rand(-6,6)),Math.random()<.5?0xff8a3a:0x2a2622,2,3,1.2);
+          if(c.mast){c.mastT+=dt;c.mast.rotation.x=Math.min(1.5,c.mastT*c.mastT*.8);c.mast.position.z=c.sz-5+Math.sin(c.mast.rotation.x)*7.5;c.mast.position.y=11-Math.sin(c.mast.rotation.x)*5;}},
+        cam:(k,c)=>camPath([sx+24,6,sz-24],[sx+19,5,sz-19],[sx,3,sz-2],[sx,2,sz-2],k)},
       {dur:3,sub:'',enter(c){fade(1,400,false);setTimeout(()=>showTitle(true),500);},update(k){if(k>.85)showTitle(false);}},
-      {dur:5,sub:'Sand. Salt. The cry of gulls.',enter(c){c.storm.forEach(o=>o.visible=false);ISL.wreck.visible=true;flash(0);scene.background=skyCol;scene.fog=islandFog;applySky(6.8);fade(0,1600,false);c.yaw0=yawTo(W.x,W.z,W.x,W.z-10);},
+      {dur:5,sub:'Sand. Salt. The cry of gulls.',enter(c){c.storm.forEach(o=>o.visible=false);$('#flash').style.background='';if(c.fire)c.fire.visible=false;ISL.wreck.visible=true;flash(0);scene.background=skyCol;scene.fog=islandFog;applySky(6.8);fade(0,1600,false);c.yaw0=yawTo(W.x,W.z,W.x,W.z-10);},
         update(k){const o=k<.25?k/.25*.25:k<.32?.25-(k-.25)/.07*.25:k<.55?(k-.32)/.23*.55:k<.6?.55-(k-.55)/.05*.5:Math.min(1,.05+(k-.6)/.3);setLids(o);cvs.style.filter=`blur(${(9*(1-k*.6)).toFixed(1)}px)`;},
         cam:(k,c)=>lookFrom(W.x,W.h+.32,W.z,c.yaw0+.5+Math.sin(k*2)*.08,.62-k*.12)},
       {dur:4.6,sub:others.length?`${joinNames(others)} ${others.length>1?'are':'is'} lying further up the beach. Alive.`:'There is no one else on the beach. You are alone.',
         update(k,t,dt,c){setLids(1);cvs.style.filter=`blur(${(4*(1-k)).toFixed(1)}px)`;c.lay.forEach((m,i)=>{const e=ease(clamp((k-.35-i*.12)/.5,0,1));m.rotation.x=-Math.PI/2*(1-e*.55);});},
         cam:(k,c)=>{const tgt=c.lay[0]?c.lay[0].userData.base:{x:W.x-6,z:W.z+2};const y1=yawTo(W.x,W.z,tgt.x,tgt.z);lookFrom(W.x,W.h+.32+k*.15,W.z,lerp(c.yaw0+.5,y1,ease(k)),lerp(.5,.02,ease(k)),lerp(0,-.5,ease(Math.min(1,k*1.5)))*(1-k));}},
-      {dur:4.6,sub:'The ship is a broken shell on the reef. Behind you, nothing but jungle.',update(k,t,dt,c){cvs.style.filter='';c.lay.forEach((m,i)=>{const e=ease(clamp(k/.6,0,1));m.rotation.x=-Math.PI/2*.45*(1-e);m.position.y=Math.max(islandH(m.position.x,m.position.z),.1)+.2*(1-e);});},
+      {dur:4.6,sub:'What is left of the transport lies wrecked on the reef. No one else came ashore. Behind you, nothing but jungle.',update(k,t,dt,c){cvs.style.filter='';c.lay.forEach((m,i)=>{const e=ease(clamp(k/.6,0,1));m.rotation.x=-Math.PI/2*.45*(1-e);m.position.y=Math.max(islandH(m.position.x,m.position.z),.1)+.2*(1-e);});},
         cam:(k,c)=>{const tgt=c.lay[0]?c.lay[0].userData.base:{x:W.x-6,z:W.z+2};const y1=yawTo(W.x,W.z,tgt.x,tgt.z);let y2=yawTo(W.x,W.z,WRECK.x,WRECK.z);while(y2-y1>Math.PI)y2-=Math.PI*2;while(y1-y2>Math.PI)y2+=Math.PI*2;const e=ease(k);lookFrom(W.x,W.h+lerp(.47,1.0,e),W.z,lerp(y1,y2,e),lerp(.02,.04,e));}},
       {dur:3.4,sub:'',update(k,t,dt,c){c.lay.forEach((m,i)=>{m.rotation.x=0;m.position.y=Math.max(islandH(m.position.x,m.position.z),.1);m.rotation.y=lerp(m.rotation.y,0,.06);});},
         cam:(k,c)=>{const y2=yawTo(W.x,W.z,WRECK.x,WRECK.z);let y3=0;while(y3-y2>Math.PI)y3-=Math.PI*2;while(y2-y3>Math.PI)y3+=Math.PI*2;const e=ease(k);lookFrom(W.x,W.h+lerp(1.0,1.62,e),W.z,lerp(y2,y3,e),lerp(.04,0,e));}}],
@@ -1650,8 +2040,31 @@ function bossIntro(b,lines,roar){const fx=P.pos.x,fz=P.pos.z,fy=islandH(fx,fz);c
       {dur:2.8,sub:lines[1],enter(){roar();G.shake=.8;},update(k,t){const u=b.mesh.userData;if(u.aL){u.aL.rotation.x=-2.7+Math.sin(t*20)*.15;u.aR.rotation.x=-2.7-Math.sin(t*20)*.15;}if(u.jaw)u.jaw.rotation.x=.6;if(u.head)u.head.rotation.x=-.3;},
         cam:(k)=>{const a=b.face;const cx=b.x+Math.sin(a)*8.5,cz=b.z+Math.cos(a)*8.5;camPath([cx,b.y+3,cz],[cx,b.y+2.6,cz],[b.x,b.y+3,b.z],[b.x,b.y+3.8,b.z],k);}}],
     onEnd(){const u=b.mesh.userData;if(u.jaw)u.jaw.rotation.x=0;if(u.head)u.head.rotation.x=0;b.active=true;b.state='chase';G.ibar=b;showHud();}});}
-function cineBigfoot(b){bossIntro(b,['The trees on the slope are shaking. Something huge is coming down from the cliffs.','King Bigfoot.'],SFX.bigRoar);}
-function cineMonster(b){bossIntro(b,['Mud and reeds burst apart. The swamp has sent something for the camp.','The Island Monster.'],SFX.bigRoar);}
+/* King Bigfoot: the obelisk on the hill lights up and he climbs out of the hillside */
+function cineBigfoot(b){const O=ISL.obelisk;const ox=HILL.x,oz=HILL.z,oh=islandH(ox,oz);const cv=HILL_CAVE;const ch=islandH(cv.x,cv.z);
+  b.x=cv.x;b.z=cv.z+.4;b.y=ch-1.2;b.face=0;b.mesh.position.set(b.x,b.y,b.z);b.mesh.rotation.y=0;
+  const walk=(t,on)=>{const u=b.mesh.userData;const sw=on?Math.sin(t*5)*.5:0;u.lL.rotation.x=sw;u.lR.rotation.x=-sw;u.aL.rotation.x=-sw*.6;u.aR.rotation.x=sw*.6;};
+  playCine({shots:[
+      {dur:3.8,sub:'The carvings on the obelisk begin to glow.',enter(){SFX.rumble();setTimeout(SFX.unlock,900);},update(k){O.glow(ease(clamp(k*1.3,0,1)));},
+        cam:k=>camPath([ox+6,oh+1.8,oz+8],[ox+4.2,oh+2.2,oz+5.6],[ox,oh+4,oz],[ox,oh+7.5,oz],k)},
+      {dur:3.6,sub:'The hill shudders. Something huge is climbing out of the dark behind it.',enter(){G.shake=.7;SFX.growl();},update(k,t){const e=ease(k);b.z=cv.z+.4+e*6.5;b.y=lerp(ch-1.2,islandH(b.x,b.z),clamp(k*2,0,1));walk(t,true);b.mesh.position.set(b.x,b.y,b.z);if(Math.random()<.2)burst(new V3(cv.x+rand(-2,2),ch+rand(0,3),cv.z+rand(0,1)),0x8a8070,3,3);},
+        cam:k=>camPath([ox+7,oh+2.4,oz+3],[ox+6,oh+2.2,oz+2],[cv.x,ch+3,cv.z+3],[cv.x,ch+3.5,cv.z+5],k)},
+      {dur:2.8,sub:'King Bigfoot.',enter(){SFX.bigRoar();G.shake=.9;},update(k,t){walk(0,false);const u=b.mesh.userData;u.aL.rotation.x=-2.7+Math.sin(t*20)*.15;u.aR.rotation.x=-2.7-Math.sin(t*20)*.15;},
+        cam:k=>{const cx=b.x+7.5,cz=b.z+4.5;camPath([cx,b.y+1.6,cz],[cx-.4,b.y+1.4,cz-.4],[b.x,b.y+4.6,b.z],[b.x,b.y+5,b.z],k);}}],
+    onEnd(){O.glow(1);b.face=Math.atan2(P.pos.x-b.x,P.pos.z-b.z);b.y=islandH(b.x,b.z);b.active=true;b.state='chase';b.cd=2;G.ibar=b;showHud();}});}
+/* The Swamp Monster rises out of the water when someone wades in for vines */
+function cineMonster(b){const fx=P.pos.x,fz=P.pos.z,fy=islandH(fx,fz);let mx=SWAMP.x,mz=SWAMP.z;const a=Math.atan2(SWAMP.x-fx,SWAMP.z-fz);
+  for(let d=12;d<30;d+=1){const x=fx+Math.sin(a)*d,z=fz+Math.cos(a)*d;if(islandH(x,z)<-.3){mx=x;mz=z;break;}}
+  const mh=islandH(mx,mz);b.x=mx;b.z=mz;b.y=mh-5;b.face=Math.atan2(fx-mx,fz-mz);b.mesh.position.set(b.x,b.y,b.z);b.mesh.rotation.y=b.face;
+  const sx=fx-Math.sin(a)*3.5+Math.cos(a)*1.5,sz=fz-Math.cos(a)*3.5-Math.sin(a)*1.5;
+  playCine({shots:[
+      {dur:3.6,sub:'The swamp goes still. Then bubbles rise through the mud.',update(k,t,dt){if(Math.random()<dt*12)burst(new V3(mx+rand(-3,3),Math.max(mh,0)+.1,mz+rand(-3,3)),0x5a6a3a,3,2,.8);if(Math.random()<dt*2)noise(.3,.12,500);},
+        cam:k=>camPath([sx,fy+2.2,sz],[sx+Math.sin(a)*1.5,fy+2,sz+Math.cos(a)*1.5],[mx,mh+.5,mz],[mx,mh+1,mz],k)},
+      {dur:3.6,sub:'Something vast drags itself up out of the water.',enter(){SFX.splash();G.shake=.6;},update(k,t,dt){const e=ease(k);b.y=lerp(mh-5,mh,e);b.mesh.position.y=b.y;b.mesh.rotation.x=lerp(-.5,0,e);if(Math.random()<dt*14)burst(new V3(mx+rand(-3,3),Math.max(mh,0)+.3,mz+rand(-3,3)),0x3d3a22,4,4,1.2);if(k<.6&&Math.random()<dt*4)splashAt(mx+rand(-2,2),mz+rand(-2,2),false);},
+        cam:k=>{const cx=mx+Math.sin(b.face)*9+Math.cos(b.face)*3,cz=mz+Math.cos(b.face)*9-Math.sin(b.face)*3;camPath([cx,Math.max(mh,0)+3.6,cz],[cx,Math.max(mh,0)+4,cz],[mx,mh+1.5,mz],[mx,mh+2.5,mz],k);}},
+      {dur:2.8,sub:'The Swamp Monster.',enter(){SFX.bigRoar();G.shake=.9;},update(){const u=b.mesh.userData;u.jaw.rotation.x=.6;u.head.rotation.x=-.3;},
+        cam:k=>{const cx=mx+Math.sin(b.face)*8+Math.cos(b.face)*2.5,cz=mz+Math.cos(b.face)*8-Math.sin(b.face)*2.5;camPath([cx,Math.max(mh,0)+3.4,cz],[cx,Math.max(mh,0)+3.1,cz],[mx,mh+2,mz],[mx,mh+2.4,mz],k);}}],
+    onEnd(){const u=b.mesh.userData;u.jaw.rotation.x=0;u.head.rotation.x=0;b.mesh.rotation.x=0;b.y=islandH(b.x,b.z);b.active=true;b.state='chase';b.cd=2;G.ibar=b;showHud();}});}
 function cinePlesio(b){const bx=IB.x,bz=IB.z,bh=IB.h;const fx=Math.sin(bh),fz=Math.cos(bh);b.x=bx+fx*14;b.z=bz+fz*14;b.y=-6;
   playCine({shots:[
       {dur:3.2,sub:'The water beside the wreck begins to boil.',enter(){SFX.splash();},update(k,t,dt){b.y=lerp(-6,-1.1,ease(clamp((k-.25)/.75,0,1)));b.face=Math.atan2(bx-b.x,bz-b.z);b.t+=dt;const u=b.mesh.userData;u.neck.forEach((s,i)=>s.rotation.x=-.02+Math.sin(b.t*1.6+i*.5)*.05);b.mesh.position.set(b.x,b.y,b.z);b.mesh.rotation.y=b.face;if(Math.random()<dt*10)splashAt(b.x+rand(-3,3),b.z+rand(-3,3),false);},
@@ -1678,18 +2091,6 @@ function cineDiscovery(){G.discovering=true;const fi=randi(0,G.names.length-1);c
       {dur:3.8,sub:'Cold air breathes up from below. The carved stones were all pointing here.',enter(){SFX.beat();setTimeout(SFX.beat,1100);setTimeout(SFX.beat,2200);},cam:k=>camPath([sx,h+1.4,sz+2.4],[sx,h+1,sz+1.4],[sx,h-.5,sz-3],[sx,h-1.4,sz-4.5],k)}],
     onEnd(){G.stairFound=true;G.discovering=false;if(ISL&&ISL.stair)ISL.stair.userData.cover.visible=false;showHud();toast(`${fi===0?'You':fname} found a hidden stairway. Go down when you are ready — but the natives are getting bolder.`,'found',5200);saveCheckpoint('island');}});}
 
-/* Day 10: the natives come out of the trees */
-function cineNatives(){G.discovering=true;const fx=CAMP.x+1.5,fz=CAMP.z+3.5,fy=islandH(fx,fz);const sx=STAIR.x,sz=STAIR.z,sh=islandH(sx,sz);
-  playCine({setup(c){c.nat=[];for(let i=0;i<9;i++){const a=i/9*6.283+rand(-.2,.2);const p=landPointNear(fx+Math.sin(a)*26,fz+Math.cos(a)*26,0,4);const m=own(makeNative(false));m.position.set(p.x,islandH(p.x,p.z),p.z);m.rotation.y=Math.atan2(fx-p.x,fz-p.z);c.nat.push({m,x:p.x,z:p.z});}c.drumT=0;},
-    ambient(c,dt){c.drumT-=dt;if(c.drumT<=0){c.drumT=.5;SFX.drum();}},
-    shots:[
-      {dur:4,sub:'Day 10. At dawn, the drums begin.',update(k,t,dt,c){c.nat.forEach(n=>{const dx=fx-n.x,dz=fz-n.z,d=Math.hypot(dx,dz);if(d>14){n.x+=dx/d*1.6*dt;n.z+=dz/d*1.6*dt;}n.m.position.set(n.x,islandH(n.x,n.z),n.z);walkPose(n.m,t*5,.4);});},cam:k=>{const a=k*2.2;lookFrom(fx,fy+2.2,fz,a,.0);}},
-      {dur:3.4,sub:'The watchers in the trees finally show themselves.',update(k,t,dt,c){c.nat.forEach(n=>{walkPose(n.m,0,0);n.m.userData.aR.rotation.x=-2.6;});},cam:(k,c)=>{const n=c.nat[0];const dx=fx-n.x,dz=fz-n.z,d=Math.hypot(dx,dz)||1;camPath([n.x+dx/d*3.5,islandH(n.x,n.z)+1.7,n.z+dz/d*3.5],[n.x+dx/d*2.6,islandH(n.x,n.z)+1.8,n.z+dz/d*2.6],[n.x,islandH(n.x,n.z)+1.9,n.z],[n.x,islandH(n.x,n.z)+1.9,n.z],k);}},
-      {dur:4.6,sub:'There is only one place left to run.',enter(c){G.stairFound=true;if(ISL.stair)ISL.stair.userData.cover.visible=false;c.party=G.names.map((n,i)=>{const m=actor(i);m.position.set(sx+[0,-1,1,0][i],sh,sz+9+i*1.4);m.rotation.y=Math.PI;return m;});
-          c.nat.forEach((n,i)=>{const a=-.9+i*.22;n.x=sx+Math.sin(a)*16;n.z=sz+10+Math.cos(a)*6;n.m.position.set(n.x,islandH(n.x,n.z),n.z);n.m.rotation.y=Math.PI;});},
-        update(k,t,dt,c){c.party.forEach((m,i)=>{const z=m.position.z-dt*5.5;m.position.z=z;const lz=z-sz;m.position.y=lz>1?islandH(m.position.x,z):sh+Math.max(-3.5,(lz-1)*.55);walkPose(m,t*10+i,.7);});c.nat.forEach(n=>{n.z-=dt*2.5;n.m.position.set(n.x,islandH(n.x,n.z),n.z);walkPose(n.m,t*8,.5);});if(k>.78&&!c.f){c.f=1;fade(1,700,false);}},
-        cam:k=>camPath([sx+2.2,sh+3.4,sz+5],[sx+1.6,sh+3.8,sz+3],[sx,sh+.5,sz+4],[sx,sh-.6,sz-2],k)}],
-    onEnd(){G.discovering=false;G.stairFound=true;blackNow(1,false);setTimeout(()=>{enterTemple(false);fade(0,700,false);},250);}});}
 function cineDescend(){const sx=STAIR.x,sz=STAIR.z,sh=islandH(sx,sz);G.overlay=false;
   playCine({setup(c){c.party=G.names.map((n,i)=>{const m=actor(i);m.position.set(sx+[0,-.8,.8,0][i],sh,sz+2.6+i*1.2);m.rotation.y=Math.PI;return m;});},
     shots:[{dur:3.8,sub:'One by one, you go down into the dark.',update(k,t,dt,c){c.party.forEach((m,i)=>{if(k<i*.12)return;const z=m.position.z-dt*2.2;m.position.z=z;const lz=z-sz;m.position.y=lz>1?sh:sh+Math.max(-3.5,(lz-1)*.55);walkPose(m,t*6+i,.45);});if(k>.75&&!c.f){c.f=1;fade(1,800,false);}},
@@ -1745,12 +2146,12 @@ function cineEscape(){const B=BOAT;const items=[];
       {dur:4.8,sub:'Everything you carried slips over the side and sinks into the dark.',enter(c){const b={x:BOAT.x,z:Math.min(BOAT.z,ARCH.z-34)};c.ix=b.x;c.iz=b.z;c.uwl=own(new THREE.PointLight(0x9fe8ff,1.6,16,1.4));c.uwl.position.set(b.x+1,-4,b.z+1);c.uw=true;c.fog=scene.fog;c.bg=scene.background;scene.fog=new THREE.FogExp2(0x0a3a4a,.08);scene.background=new THREE.Color(0x06222c);
           const under=own(new THREE.Mesh(new THREE.PlaneGeometry(400,400),new THREE.MeshBasicMaterial({color:0x1d5a6a,side:THREE.BackSide})));under.rotation.x=-Math.PI/2;under.position.set(b.x,-.35,b.z);c.under=under;
           for(let k=0;k<5;k++){const ray=own(new THREE.Mesh(new THREE.CylinderGeometry(.3,1.6,14,6,1,true),new THREE.MeshBasicMaterial({color:0x9fe8ff,transparent:true,opacity:.07,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide})));ray.position.set(b.x+rand(-7,7),-7,b.z+rand(-2,9));ray.rotation.z=rand(-.2,.2);}
-          const models=[modelAxe(),modelPick(),modelBow(),modelStaff()];if(!G.tools.staff)models.pop();const sack=new THREE.Mesh(new THREE.IcosahedronGeometry(.3,0),M(0x8a6a3a));sack.scale.set(1,.8,1.2);models.push(sack);
+          const models=[modelAxe(),modelPick(),modelBow(),modelStaff()];if(!G.tools.staff)models.pop();if(G.tools.sword)models.push(modelSword());if(G.tools.pistol)models.push(modelPistol());const sack=new THREE.Mesh(new THREE.IcosahedronGeometry(.3,0),M(0x8a6a3a));sack.scale.set(1,.8,1.2);models.push(sack);
           models.forEach((m,i)=>{m.scale.multiplyScalar(2.6);m.position.set(b.x+(i-2)*.8,-.4-i*.45,b.z+rand(-.6,.6));own(m);items.push({m,vy:-rand(.55,.85),rx:rand(-1,1),rz:rand(-1,1)});});SFX.splash();},
         update(k,t,dt){items.forEach(it=>{it.m.position.y+=it.vy*dt;it.m.rotation.x+=it.rx*dt;it.m.rotation.z+=it.rz*dt;});},
         cam:(k,c)=>{const x=c.ix,z=c.iz;const my=items.length?items.reduce((a,it)=>a+it.m.position.y,0)/items.length:-3;camera.position.set(x+3.4,my+1.2,z-3.6);camera.lookAt(x,my-.4,z);if(c.uwl)c.uwl.position.y=-4-k*4;}},
       {dur:2.4,sub:'Row!',enter(c){if(c.uw){scene.fog=c.fog;scene.background=c.bg;c.uw=false;if(c.under)c.under.visible=false;}},cam:k=>{const b=BOAT;camPath([b.x-Math.sin(b.h)*7,3,b.z-Math.cos(b.h)*7],[b.x-Math.sin(b.h)*3,2.2,b.z-Math.cos(b.h)*3],[b.x+Math.sin(b.h)*20,1,b.z+Math.cos(b.h)*20],[b.x+Math.sin(b.h)*20,1,b.z+Math.cos(b.h)*20],k);}}],
-    onEnd(){if(CINE===null&&BOAT){}const b=BOAT;if(b&&scene.fog&&scene.fog.isFogExp2){scene.fog=new THREE.Fog(0x5a3a36,60,430);scene.background=b.sky;}if(b)b.ocean.material.side=THREE.FrontSide;
+    onEnd(){if(CINE===null&&BOAT){}const b=BOAT;if(b&&scene.fog&&scene.fog.isFogExp2){scene.fog=new THREE.Fog(0x5a3a36,60,430);scene.background=b.sky;}if(b){b.ocean.material.side=THREE.FrontSide;const sz=ARCH.z-26;if(b.z>sz){b.z=sz;}b.h=Math.PI;b.speed=6;b.ai.forEach((a,i)=>{a.z=Math.min(a.z,sz-2-i*2);a.h=Math.PI+a.off;});}
       G.inv=NEW_INV();G.tools=NEW_TOOLS();G.weapon=-1;saveCheckpoint('boat');showHud();toast(isTouch?'Push the stick up to row, sideways to steer':'W to row · A / D to steer · watch the water for red rings','boat',4800);}});}
 
 function cineTemple(){
@@ -1778,7 +2179,7 @@ function cineCave(){const s=cellCenter(LV.start.cx,LV.start.cy);
     shots:[
       {dur:4.4,sub:'The blast hurls you deep into the rock beneath the island.',enter(){G.shake=.6;SFX.rumble();},update(k,t,dt,c){c.party.forEach((m,i)=>{const e=ease(clamp((k-.3-i*.1)/.45,0,1));m.rotation.x=-Math.PI/2*(1-e);m.position.y=.2*(1-e);});if(Math.random()<dt*6)burst(new V3(s.x+rand(-3,3),WALLH-.2,s.z+rand(-3,3)),0x8a8070,3,1);},cam:k=>camPath([s.x+3.4,.9,s.z+3],[s.x+2.6,1.7,s.z+2.4],[s.x,.4,s.z],[s.x,1.2,s.z],k)},
       {dur:3.8,sub:'The island is breaking apart. Dig and cut your way to the sea.',enter(){G.shake=.4;noise(1.6,.3,110);},update(k,t,dt,c){c.party.forEach(m=>{m.rotation.x=0;m.position.y=0;m.rotation.y=lerp(m.rotation.y,Math.PI/2,.08);});},cam:k=>{const o=LV.obs[0];const oc=o?cellCenter(o.i,o.j):{x:s.x+12,z:s.z};camPath([s.x-1.8,2.9,s.z+1.6],[s.x-1.2,2.6,s.z+1],[s.x+4,1.4,s.z],[oc.x,1.2,oc.z],k);}}],
-    onEnd(){P.pos.set(s.x,0,s.z);P.yaw=-Math.PI/2;P.pitch=0;showHud();toast('Rubble needs the pickaxe (2). Roots need the axe (1).','obs',5000);}});}
+    onEnd(){P.pos.set(s.x,0,s.z);P.yaw=-Math.PI/2;P.pitch=0;showHud();toast('Rubble needs the pickaxe (3). Roots need the axe (2).','obs',5000);}});}
 
 /* ---------- finale: the chamber where the Entity died ---------- */
 function makeCarving(){const cw=2048,ch=360;const c=document.createElement('canvas');c.width=cw;c.height=ch;const x=c.getContext('2d');
@@ -1859,7 +2260,7 @@ function playSunset(){G.mode='finale';clearWorld();setAmbient('ocean');
   hemi.color.set(0xffb88a);hemi.groundColor.set(0x241a3a);hemi.intensity=.75;amb.intensity=.15;sun.intensity=1.1;sun.color.set(0xffa060);sun.position.copy(sunDir).multiplyScalar(300);sun.target.position.set(0,0,0);torch.intensity=0;
   const og=new THREE.PlaneGeometry(900,900,90,90);og.rotateX(-Math.PI/2);const ocean=new THREE.Mesh(og,M(0x2c3458,{roughness:.22,metalness:.35}));world.add(ocean);
   const isle=new THREE.Group();const P2=[part(GB.cone,0x231a30,0,14,0,0,0,0,120,36,90),part(GB.cone,0x2a1e36,70,9,20,0,.4,0,70,24,60),part(GB.cone,0x1e1628,-60,7,-10,0,.8,0,60,18,50),part(GB.box,0x2c2034,0,1,0,0,0,0,300,3,140)];
-  isle.add(new THREE.Mesh(merge(P2),new THREE.MeshBasicMaterial({vertexColors:true,fog:false})));isle.position.set(30,0,-560);world.add(isle);
+  isle.add(new THREE.Mesh(merge(P2),new THREE.MeshBasicMaterial({color:0xc08a78,transparent:true,opacity:.55,fog:false,depthWrite:false})));isle.position.set(70,-.4,-760);isle.scale.set(.16,.2,.16);world.add(isle);
   const boats=G.names.map((n,i)=>{const look=i===0?PLAYER_LOOK:ALLY_LOOK[(i-1)%3];const hm=makeHuman(look[0],look[1],look[2]);const b=boatSeat(hm);b.userData.hm=hm;const off=[0,-7,7,-14][i];b.position.set(off,0,40+Math.abs(off)*.6);b.rotation.y=Math.PI;world.add(b);return b;});
   const lead=boats[0];
   playCine({ambient(c,dt){const p=og.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,waveY(p.getX(i),p.getZ(i),T)*.45);p.needsUpdate=true;
@@ -1867,8 +2268,8 @@ function playSunset(){G.mode='finale';clearWorld();setAmbient('ocean');
     shots:[
       {dur:6.5,sub:'Behind them, the sea closes over the Island of Asylum.',cam:k=>camPath([4,4.5,lead.position.z+22],[2,3.6,lead.position.z+16],[0,3,-400],[0,6,-500],k)},
       {dur:5.5,sub:G.names.length>1?`${joinNames(G.names)} row on as the sun sinks toward the water.`:'You row on as the sun sinks toward the water.',cam:k=>camPath([-18,1.6,lead.position.z+4],[-14,1.4,lead.position.z-6],[lead.position.x,1.4,lead.position.z],[lead.position.x,1.6,lead.position.z-6],k)},
-      {dur:5.5,sub:'Ahead, on the horizon, another island.',cam:k=>camPath([3,2.6,lead.position.z-9],[2,2.4,lead.position.z-12],[0,1.4,lead.position.z],[30,8,-560],k)},
-      {dur:7,sub:'',enter(){setTimeout(()=>showTitle(true),900);},update(k){if(k>.88)showTitle(false);if(k>.86&&!this.f){this.f=1;fade(1,900,false);}},cam:k=>camPath([0,4,lead.position.z+10],[0,40,lead.position.z+70],[0,2,lead.position.z-20],[10,6,-560],k)}],
+      {dur:5.5,sub:'Far ahead, almost lost in the haze, a dark smudge on the horizon. Another island?',cam:k=>camPath([3,2.6,lead.position.z-9],[2,2.4,lead.position.z-12],[0,1.4,lead.position.z],[70,1.5,-760],k)},
+      {dur:7,sub:'',enter(){setTimeout(()=>showTitle(true),900);},update(k){if(k>.88)showTitle(false);if(k>.86&&!this.f){this.f=1;fade(1,900,false);}},cam:k=>camPath([0,4,lead.position.z+10],[0,40,lead.position.z+70],[0,2,lead.position.z-20],[50,2,-760],k)}],
     onEnd(){showEnd();}});
   fade(0,1600,false);}
 function showEnd(){G.mode='end';$('#hud').hidden=true;$('#touch').hidden=true;setAmbient('none');unlock();
@@ -1884,12 +2285,12 @@ function eat(){if(!playing()||G.mode==='boat')return;const isl=G.mode==='island'
 function interact(){if(!playing())return;const p=G.prompt;if(p&&p.act)p.act();}
 
 /* ---------- checkpoints ---------- */
-const STORY_KEYS=['story','campBuilt','campHP','fireLit','boatBuilt','salvaged','stairFound','huntedBoar','boatHP'];
+const STORY_KEYS=['story','campBuilt','campHP','fireLit','boatBuilt','dockBuilt','ammo','salvaged','stairFound','huntedBoar','boatHP'];
 function saveCheckpoint(stage){const cp={stage,names:G.names.slice(),day:G.day,hour:G.hour,inv:{...G.inv},tools:{...G.tools},hunger:G.hunger,chapter:G.chapter,level:G.level,maxHp:G.maxHp,dmgBonus:G.dmgBonus,kills:G.kills,runSeed:G.runSeed,startedAt:G.startedAt,dungeonTime:G.dungeonTime,ev:{...G.ev}};
   STORY_KEYS.forEach(k=>cp[k]=G[k]);if(cp.story===3){cp.story=2;}
   G.cp=cp;try{localStorage.setItem(SAVE_KEY,JSON.stringify(cp));}catch(e){}}
 function applyCheckpoint(cp){Object.assign(G,NEW_STORY(),{names:cp.names.slice(),day:cp.day,hour:cp.hour,discovering:false,inv:Object.assign(NEW_INV(),cp.inv),tools:Object.assign(NEW_TOOLS(),cp.tools),hunger:cp.hunger??80,chapter:cp.chapter,level:cp.level,maxHp:cp.maxHp,dmgBonus:cp.dmgBonus,kills:cp.kills,runSeed:cp.runSeed,startedAt:cp.startedAt||Date.now(),dungeonTime:cp.dungeonTime||0,ev:{...(cp.ev||{})},cp});
-  STORY_KEYS.forEach(k=>{if(cp[k]!==undefined)G[k]=cp[k];});G.ev.zombies=0;
+  STORY_KEYS.forEach(k=>{if(cp[k]!==undefined)G[k]=cp[k];});if(cp.dockBuilt===undefined&&(G.boatBuilt||G.salvaged>0||G.story>=2))G.dockBuilt=true;if(cp.ammo===undefined)G.ammo=0;G.ev.zombies=0;
   G.hp=G.maxHp;G.stamina=100;G.energy=100;G.breath=100;G.weapon=-1;G.paused=false;G.overlay=false;G.crafting=false;G.hurtFlash=0;G.aboard=false;G.zw=null;G.ibar=null;
   for(let i=0;i<4;i++)if(G.tools[TOOL_KEYS[i]]){G.weapon=i;break;}}
 function resumeStage(stage){if(stage==='island')enterIsland();else if(stage==='temple')enterTemple(true);else if(stage==='dungeon')startLevel(G.chapter,G.level,true);else if(stage==='cave')startCave(true);else startEscape(true);}
@@ -1901,7 +2302,7 @@ function enterIsland(){G.mode='island';G.aboard=false;IB=null;buildIsland(false)
   if(G.ev.bigfoot&&!G.ev.bigfootDone){const b=spawnBigfoot();b.active=true;G.ibar=b;}
   if(G.ev.monster&&!G.ev.monsterDone){const b=spawnMonster();b.active=true;G.ibar=b;}
   applySky(G.hour);spawnAllies();setAmbient('jungle');showHud();}
-function newGame(names){Object.assign(G,NEW_STORY(),{names,day:1,hour:7,discovering:false,inv:NEW_INV(),tools:NEW_TOOLS(),hp:100,maxHp:100,hunger:100,stamina:100,energy:100,breath:100,weapon:-1,dmgBonus:0,chapter:1,level:1,kills:0,runSeed:randi(1,99999),startedAt:Date.now(),dungeonTime:0,paused:false,overlay:false,crafting:false,gatherT:30,tremorT:20,hull:100,aboard:false,boatHP:100,zw:null,ibar:null});
+function newGame(names){Object.assign(G,NEW_STORY(),{names,day:1,hour:7,discovering:false,inv:NEW_INV(),tools:Object.assign(NEW_TOOLS(),{pistol:true}),hp:100,maxHp:100,hunger:100,stamina:100,energy:100,breath:100,weapon:5,dmgBonus:0,chapter:1,level:1,kills:0,runSeed:randi(1,99999),startedAt:Date.now(),dungeonTime:0,paused:false,overlay:false,crafting:false,gatherT:30,tremorT:20,hull:100,aboard:false,boatHP:100,zw:null,ibar:null});
   enterIsland();saveCheckpoint('island');cineOpening();}
 function die(kind){if(G.overlay&&!kind)return;if(G.mode==='end')return;P.fire=false;G.overlay=true;unlock();G.deadMode=G.mode;
   const th=LV&&LV.th;const m={island:['Out cold','You collapsed','You wake up back at camp, battered, with half your meat gone. Whatever beat you is still out there.','Wake up'],
@@ -1960,7 +2361,7 @@ addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT')return;ke
   if(e.code==='Escape'||e.code==='KeyP'){if(G.paused){if(e.code==='KeyP')resume();}else if(playing())showPause();return;}
   if(!playing())return;
   if(e.code==='Space'||e.code.startsWith('Arrow')||e.code==='Tab')e.preventDefault();
-  if(e.code==='Digit1')selectWeapon(0);else if(e.code==='Digit2')selectWeapon(1);else if(e.code==='Digit3')selectWeapon(2);else if(e.code==='Digit4')selectWeapon(3);else if(e.code==='KeyQ')cycleWeapon(1);
+  const dg=/^Digit([1-6])$/.exec(e.code);if(dg)selectWeapon(KEY_W[+dg[1]-1]);else if(e.code==='KeyQ')cycleWeapon(1);
   else if(e.code==='KeyE')interact();else if(e.code==='KeyF')eat();else if(e.code==='KeyC'||e.code==='Tab')openCraft();else if(e.code==='KeyZ'&&G.mode==='island')trySleep();});
 addEventListener('keyup',e=>{keys[e.code]=false;});
 const sZone=$('#stickZone'),sBase=$('#stickBase'),knob=$('#knob'),lZone=$('#lookZone');let lookId=null,lx=0,ly=0;
@@ -1989,7 +2390,7 @@ $('#menuForm').addEventListener('submit',e=>{e.preventDefault();const names=[...
 $('#contBtn').onclick=()=>{if(!G.cp)return;initAudio();$('#menu').hidden=true;applyCheckpoint(G.cp);resumeStage(G.cp.stage);lock();};
 
 /* ---------- HUD ---------- */
-const el={tag:$('#tag'),sub:$('#sub'),obj:$('#obj'),compass:$('#compass'),arrow:$('#arrow'),clabel:$('#clabel'),bossbar:$('#bossbar'),bfill:$('#bfill'),mm:$('#minimap'),party:$('#party'),hpF:$('#hpF'),hpN:$('#hpN'),huRow:$('#huRow'),huF:$('#huF'),huN:$('#huN'),stF:$('#stF'),enRow:$('#enRow'),enF:$('#enF'),hotbar:$('#hotbar'),boltN:$('#boltN'),inv:$('#inv'),prompt:$('#prompt'),boatHud:$('#boatHud'),vitals:$('#vitals'),bDist:$('#bDist'),bDistF:$('#bDistF'),bHull:$('#bHull'),bTime:$('#bTime'),vig:$('#vignette'),cross:$('#crosshair')};
+const el={ammoN:$('#ammoN'),tag:$('#tag'),sub:$('#sub'),obj:$('#obj'),compass:$('#compass'),arrow:$('#arrow'),clabel:$('#clabel'),bossbar:$('#bossbar'),bfill:$('#bfill'),mm:$('#minimap'),party:$('#party'),hpF:$('#hpF'),hpN:$('#hpN'),huRow:$('#huRow'),huF:$('#huF'),huN:$('#huN'),stF:$('#stF'),enRow:$('#enRow'),enF:$('#enF'),hotbar:$('#hotbar'),boltN:$('#boltN'),inv:$('#inv'),prompt:$('#prompt'),boatHud:$('#boatHud'),vitals:$('#vitals'),bDist:$('#bDist'),bDistF:$('#bDistF'),bHull:$('#bHull'),bTime:$('#bTime'),vig:$('#vignette'),cross:$('#crosshair')};
 Object.assign(el,{brRow:$('#brRow'),brF:$('#brF'),cpRow:$('#cpRow'),cpF:$('#cpF'),cpN:$('#cpN'),btRow:$('#btRow'),btF:$('#btF'),btN:$('#btN'),bossName:$('#bossName')});
 const mmx=el.mm.getContext('2d');let mmT=0;
 function setT(e,v){if(e._v!==v){e._v=v;e.textContent=v;}}
@@ -2005,7 +2406,7 @@ function hud(){const mode=G.mode,boat=mode==='boat';
   else if(boat){setT(el.tag,CH_NAME[9]);setT(el.sub,`${CH_SHORT[9]} · The island is crumbling`);setT(el.obj,'Row 600 m clear of the island. Steer away from the red rings');}
   setH(el.vitals,boat);setH(el.hotbar,boat);setH(el.inv,boat);setH(el.boatHud,!boat);setH(el.cross,boat);
   if(!boat){setW(el.hpF,G.hp/G.maxHp*100);setT(el.hpN,String(Math.max(0,Math.ceil(G.hp))));setH(el.huRow,mode!=='island');if(mode==='island'){setW(el.huF,G.hunger);setT(el.huN,String(Math.ceil(G.hunger)));}
-    setW(el.stF,G.stamina);setH(el.enRow,!G.tools.staff);if(G.tools.staff)setW(el.enF,G.energy);setT(el.boltN,G.tools.bow?String(G.inv.bolts):'');
+    setW(el.stF,G.stamina);setH(el.enRow,!G.tools.staff);if(G.tools.staff)setW(el.enF,G.energy);setT(el.boltN,G.tools.bow?String(G.inv.bolts):'');setT(el.ammoN,G.tools.pistol?String(G.ammo):'');
     const hk=G.weapon+'|'+TOOL_KEYS.map(k=>G.tools[k]?1:0).join('');if(el.hotbar._k!==hk){el.hotbar._k=hk;el.hotbar.querySelectorAll('.slot').forEach(s=>{const w=+s.dataset.w;s.classList.toggle('on',w===G.weapon);s.classList.toggle('locked',!G.tools[TOOL_KEYS[w]]);});}
     const isl=mode==='island';setH(el.brRow,!(isl&&G.breath<99.5));if(isl)setW(el.brF,G.breath);setH(el.cpRow,!(isl&&G.campBuilt&&G.story>=2));if(isl&&G.campBuilt){setW(el.cpF,G.campHP);setT(el.cpN,G.campHP<=0?'—':String(Math.ceil(G.campHP)));}
     setH(el.btRow,!(isl&&G.aboard));if(isl&&G.aboard){setW(el.btF,G.boatHP);setT(el.btN,String(Math.ceil(G.boatHP)));}
@@ -2031,8 +2432,9 @@ function drawMinimap(){const W=LV.W,H=LV.H,sz=el.mm.width,cs=sz/Math.max(W,H);mm
 /* ---------- loop ---------- */
 function commonAnim(dt){
   if(ISL){if(ISL.water)ISL.water.position.y=Math.sin(T*.6)*.08;if(G.fireLit&&ISL.fire){ISL.fire.flame.scale.y=1+Math.sin(T*13)*.15;ISL.fire.light.intensity=1.7+Math.sin(T*17)*.3;}}
-  for(const l of flick){if(!l.fl.visible){l.light.intensity=0;continue;}if(l.soft){l.light.intensity=l.base*(.8+Math.sin(T*l.f+l.p)*.2);continue;}l.light.intensity=l.base*(.85+Math.sin(T*l.f+l.p)*.1+Math.random()*.06);l.fl.scale.y=1+Math.sin(T*l.f*1.3+l.p)*.15;}
+  for(const l of flick){if(!l.fl.visible){l.light.intensity=0;continue;}if(l.blink){if(!l.bt||T>l.bt){l.on=Math.random()<.82;l.bt=T+(l.on?rand(.4,3):rand(.04,.25));}l.light.intensity=l.on?l.base:0;continue;}if(l.soft){l.light.intensity=l.base*(.8+Math.sin(T*l.f+l.p)*.2);continue;}l.light.intensity=l.base*(.85+Math.sin(T*l.f+l.p)*.1+Math.random()*.06);l.fl.scale.y=1+Math.sin(T*l.f*1.3+l.p)*.15;}
   if(LV&&LV.waterMat)LV.waterMat.emissiveIntensity=.8+Math.sin(T*2)*.3;
+  if(LV&&LV.tick)LV.tick(dt);
   updateFalls(dt);updateParts(dt);}
 let lastT=performance.now();
 function step(dt){T+=dt;
@@ -2058,5 +2460,4 @@ window.claude?.hot?.ready?window.claude.hot.ready(boot):boot(window.claude?.hot?
 })();
 
 </script>
-</body>
-</html>
+</body></html>
